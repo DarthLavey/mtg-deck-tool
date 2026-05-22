@@ -1007,6 +1007,369 @@
     font-family: 'Fredoka One', cursive;
     font-size: 12px;
   }
+
+  /* ----------------------------------------------------------------
+     LANDING PAGE
+  ---------------------------------------------------------------- */
+  .landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 40px 20px;
+    animation: fadeIn 0.5s ease;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .landing-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(28px, 4vw, 38px);
+    color: var(--yellow);
+    text-align: center;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  .landing-sub {
+    font-size: 15px;
+    color: var(--text-dim);
+    text-align: center;
+    margin: 0 auto 48px;
+    max-width: 480px;
+    line-height: 1.7;
+    width: 100%;
+  }
+  .landing-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  @media (max-width: 560px) { .landing-cards { grid-template-columns: 1fr; } }
+  .landing-card {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 24px;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .landing-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--teal);
+    box-shadow: 0 12px 40px rgba(46,196,182,0.15);
+  }
+  .landing-card.playstyle:hover {
+    border-color: var(--yellow);
+    box-shadow: 0 12px 40px rgba(255,209,102,0.15);
+  }
+  .landing-card-emoji { font-size: 48px; line-height: 1; }
+  .landing-card-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--foam);
+  }
+  .landing-card-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .landing-card-cta {
+    margin-top: 8px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    letter-spacing: 1px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--teal);
+    color: var(--teal);
+    background: rgba(46,196,182,0.08);
+  }
+  .landing-card.playstyle .landing-card-cta {
+    border-color: var(--yellow);
+    color: var(--yellow);
+    background: rgba(255,209,102,0.08);
+  }
+
+  /* ----------------------------------------------------------------
+     BACK TO HOME BUTTON
+  ---------------------------------------------------------------- */
+  .back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    letter-spacing: 1px;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: 24px;
+  }
+  .back-home-btn:hover { color: var(--foam); border-color: var(--foam); }
+
+  /* ----------------------------------------------------------------
+     QUIZ CONTAINER
+  ---------------------------------------------------------------- */
+  .quiz-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 20px;
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  .quiz-progress-bar {
+    height: 4px;
+    background: var(--water-mid);
+    border-radius: 999px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .quiz-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--yellow));
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+  .quiz-q-num {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .quiz-question {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(20px, 4vw, 28px);
+    color: var(--foam);
+    margin-bottom: 28px;
+    line-height: 1.3;
+  }
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .quiz-option {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 15px;
+    color: var(--text);
+    text-align: left;
+  }
+  .quiz-option:hover {
+    border-color: var(--teal);
+    background: rgba(46,196,182,0.06);
+    transform: translateX(4px);
+  }
+  .quiz-option.selected {
+    border-color: var(--teal);
+    background: rgba(46,196,182,0.12);
+    color: var(--foam);
+  }
+  .quiz-option-emoji { font-size: 24px; flex-shrink: 0; }
+  .quiz-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+  }
+  .quiz-btn-back {
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    padding: 9px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .quiz-btn-back:hover { color: var(--foam); border-color: var(--foam); }
+  .quiz-btn-next {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 10px 28px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--teal), #1a9d92);
+    color: #07171f;
+    transition: transform 0.1s, box-shadow 0.15s, opacity 0.15s;
+  }
+  .quiz-btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(46,196,182,0.3); }
+  .quiz-btn-next:disabled { opacity: 0.35; cursor: default; transform: none; box-shadow: none; }
+
+  /* ----------------------------------------------------------------
+     RESULT SCREEN
+  ---------------------------------------------------------------- */
+  .result-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 20px;
+    animation: fadeIn 0.5s ease;
+  }
+  .result-reveal {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .result-pips {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .result-pip {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .result-pip.show { opacity: 1; transform: scale(1); }
+  .result-identity-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(28px, 6vw, 44px);
+    color: var(--yellow);
+    margin-bottom: 8px;
+  }
+  .result-identity-desc {
+    font-size: 15px;
+    color: var(--text-dim);
+    max-width: 500px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+  }
+  .result-section-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: var(--foam);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-commanders {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .result-cmdr-card {
+    width: 220px;
+    flex-shrink: 0;
+  }
+  .result-cmdr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s;
+    cursor: pointer;
+    width: 220px;
+    flex-shrink: 0;
+  }
+  .result-cmdr-card:hover { transform: translateY(-3px); border-color: var(--teal); }
+  .result-cmdr-img {
+    width: 100%;
+    aspect-ratio: 745/1040;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+    background: var(--water-deep);
+  }
+  .result-cmdr-body { padding: 12px 14px; }
+  .result-cmdr-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    color: var(--foam);
+    margin-bottom: 4px;
+  }
+  .result-cmdr-why {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .result-cmdr-link {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--teal);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(46,196,182,0.3);
+  }
+  .result-why-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 32px;
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+  .result-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .result-btn-retake {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 10px 24px;
+    border-radius: 999px;
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    background: rgba(255,209,102,0.08);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .result-btn-retake:hover { background: rgba(255,209,102,0.16); transform: translateY(-1px); }
+  .result-btn-analyzer {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 10px 24px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--teal), #1a9d92);
+    color: #07171f;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .result-btn-analyzer:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(46,196,182,0.3); }
 </style>
 </head>
 <body>
@@ -1014,17 +1377,41 @@
 <!-- =====================================================================
      HEADER
      ===================================================================== -->
-<header class="app-header">
+<header class="app-header" id="app-header">
   <div class="eyebrow">Magic the Gathering · Commander Format</div>
   <h1>Deck Brewer's Bench</h1>
-  <p class="tagline">Paste a decklist. Get analysis, synergies, and ways to make it sharper.</p>
+  <p class="tagline" id="header-tagline">Paste a decklist. Get analysis, synergies, and ways to make it sharper.</p>
 </header>
 
-<main class="main">
+<main class="main" id="main-content">
 
   <!-- =====================================================================
-       INPUT PANEL
+       LANDING PAGE
        ===================================================================== -->
+  <div id="landing-view" class="landing">
+    <div class="landing-title">✨ Where would you like to start?</div>
+    <p class="landing-sub">Whether you have a deck ready to analyze or you're just finding your footing in Magic, we've got you covered.</p>
+    <div class="landing-cards">
+      <div class="landing-card" id="go-analyzer">
+        <div class="landing-card-emoji">&#128300;</div>
+        <div class="landing-card-title">Analyze My Deck</div>
+        <div class="landing-card-desc">Paste a decklist and get bracket rating, archetype detection, legality check, and optimization suggestions.</div>
+        <div class="landing-card-cta">Open Analyzer →</div>
+      </div>
+      <div class="landing-card playstyle" id="go-quiz">
+        <div class="landing-card-emoji">&#127917;</div>
+        <div class="landing-card-title">Find My Playstyle</div>
+        <div class="landing-card-desc">New to Magic? Answer 9 quick questions and we'll match you with a color identity and commanders that fit your personality.</div>
+        <div class="landing-card-cta">Take the Quiz →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       ANALYZER VIEW
+       ===================================================================== -->
+  <div id="analyzer-view" style="display:none;">
+    <button class="back-home-btn" id="analyzer-back">← Back to Home</button>
   <section class="input-panel">
     <h2>Your decklist</h2>
     <p class="helper">
@@ -1056,6 +1443,36 @@
 
 </main>
 
+  </div><!-- end analyzer-view -->
+
+  <!-- =====================================================================
+       QUIZ VIEW
+       ===================================================================== -->
+  <div id="quiz-view" style="display:none;">
+    <div class="quiz-wrap">
+      <button class="back-home-btn" id="quiz-back">← Back to Home</button>
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-progress"></div></div>
+      <div class="quiz-q-num" id="quiz-q-num">Question 1 of 9</div>
+      <div class="quiz-question" id="quiz-question"></div>
+      <div class="quiz-options" id="quiz-options"></div>
+      <div class="quiz-nav">
+        <button class="quiz-btn-back" id="quiz-prev">Back</button>
+        <button class="quiz-btn-next" id="quiz-next" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       RESULT VIEW
+       ===================================================================== -->
+  <div id="result-view" style="display:none;">
+    <div class="result-wrap">
+      <button class="back-home-btn" id="result-back">← Back to Home</button>
+      <div id="result-content"></div>
+    </div>
+  </div>
+
+</main>
 <footer>
   Built with care · Card data from <a href="https://scryfall.com" style="color:var(--teal)">Scryfall</a>
 </footer>
@@ -2502,7 +2919,7 @@ function renderResults(report) {
     }
 
     const vizPanel = el('div', 'viz-panel');
-    vizPanel.innerHTML = '<div class="viz-headline">\uD83D\uDCCA Deck Breakdown</div><div class="viz-grid" id="viz-grid-inner"></div>';
+    vizPanel.innerHTML = '<div class="viz-headline">📊 Deck Breakdown</div><div class="viz-grid" id="viz-grid-inner"></div>';
     root.appendChild(vizPanel);
     const vizGrid = vizPanel.querySelector('#viz-grid-inner');
 
@@ -3516,6 +3933,490 @@ function hidePreview() {
   $preview.style.display = 'none';
 }
 
+
+
+// =============================================================================
+// NAVIGATION — view switcher
+// =============================================================================
+function showView(id) {
+  ['landing-view','analyzer-view','quiz-view','result-view'].forEach(function(v) {
+    var el = document.getElementById(v);
+    if (el) el.style.display = (v === id) ? 'block' : 'none';
+  });
+  // Update header tagline
+  var tagline = document.getElementById('header-tagline');
+  if (tagline) {
+    if (id === 'landing-view')  tagline.textContent = 'Where would you like to start?';
+    if (id === 'analyzer-view') tagline.textContent = 'Paste a decklist. Get analysis, synergies, and ways to make it sharper.';
+    if (id === 'quiz-view')     tagline.textContent = 'Answer 9 questions and discover your Magic playstyle.';
+    if (id === 'result-view')   tagline.textContent = 'Here’s your Magic personality profile.';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('go-analyzer').addEventListener('click', function() { showView('analyzer-view'); });
+document.getElementById('go-quiz').addEventListener('click', function() { startQuiz(); showView('quiz-view'); });
+document.getElementById('analyzer-back').addEventListener('click', function() { showView('landing-view'); });
+document.getElementById('quiz-back').addEventListener('click', function() { showView('landing-view'); });
+document.getElementById('result-back').addEventListener('click', function() { showView('landing-view'); });
+
+// =============================================================================
+// QUIZ DATA — questions and scoring weights
+// =============================================================================
+// Each answer gives points to W, U, B, R, G.
+// complexityTier: 0=newcomer, 1=casual, 2=experienced, 3=veteran
+const QUESTIONS = [
+  // Q1: Experience — neutral weights, just sets complexity tier
+  {
+    q: 'How familiar are you with card games or strategy games?',
+    emoji: '&#127918;',
+    special: 'experience',
+    options: [
+      { text: 'Total newcomer — never played anything like this',        emoji: '&#127807;', w:{W:1,U:1,B:1,R:1,G:1}, tier:0 },
+      { text: 'Casual — board games, mobile games, that sort of thing',  emoji: '&#127922;', w:{W:1,U:0,B:0,R:1,G:1}, tier:1 },
+      { text: 'Experienced — I play TCGs, RPGs, or competitive games',   emoji: '&#9876;&#65039;', w:{U:1,B:1,R:1,G:1,W:0}, tier:2 },
+      { text: 'Veteran — I’ve played Magic or other deep strategy games before', emoji: '&#128081;', w:{U:1,B:1,R:1,G:1,W:1}, tier:3 },
+    ]
+  },
+  // Q2: Class archetype — clear color signals, White boosted on tank
+  {
+    q: 'When you play a video game with character classes, you gravitate toward…',
+    emoji: '&#128737;&#65039;',
+    options: [
+      { text: 'The warrior or fighter — get in there and hit hard',         emoji: '&#9876;&#65039;', w:{R:3,W:2,G:1,U:0,B:0} },
+      { text: 'The rogue or trickster — clever, sneaky, always has an angle', emoji: '&#128009;', w:{B:3,U:1,R:2,W:0,G:0} },
+      { text: 'The mage or strategist — powerful but needs setup time',     emoji: '&#10024;', w:{U:2,B:2,R:1,W:1,G:0} },
+      { text: 'The tank or paladin — tough, protective, hard to take down', emoji: '&#128737;&#65039;', w:{W:3,G:2,U:1,R:0,B:0} },
+      { text: 'The ranger or druid — in harmony with nature, self-sufficient', emoji: '&#127807;', w:{G:3,W:2,R:1,U:0,B:0} },
+    ]
+  },
+  // Q3: World/theme — strong single-color signals, keep as-is
+  {
+    q: 'Which of these worlds sounds most appealing to you?',
+    emoji: '&#127757;',
+    options: [
+      { text: 'Dark and gothic — shadows, death, power at a price',          emoji: '&#128128;', w:{B:4,U:1,R:1,W:0,G:0} },
+      { text: 'Wild and natural — forests, beasts, unstoppable growth',      emoji: '&#127794;', w:{G:4,W:1,R:1,U:0,B:0} },
+      { text: 'Mechanical and clever — gadgets, inventions, intellect',      emoji: '&#9881;&#65039;', w:{U:2,R:2,W:1,G:0,B:1} },
+      { text: 'Noble and protective — honor, light, defending others',       emoji: '&#9728;&#65039;', w:{W:4,G:1,U:1,R:0,B:0} },
+      { text: 'Chaotic and fierce — fire, impulse, living in the moment',   emoji: '&#128293;', w:{R:4,B:1,G:1,W:0,U:0} },
+    ]
+  },
+  // Q4: Personality — White boosted on peacemaker, more spread
+  {
+    q: 'How would your friends describe you?',
+    emoji: '&#128101;',
+    options: [
+      { text: 'The one with a plan — always three steps ahead',     emoji: '&#9876;&#65039;', w:{U:2,B:2,W:1,R:0,G:1} },
+      { text: 'The wildcard — unpredictable and hard to read',     emoji: '&#127922;', w:{R:3,B:1,U:1,W:0,G:1} },
+      { text: 'The peacemaker — reads the room and plays it smart',emoji: '&#129309;', w:{W:3,G:2,U:1,B:0,R:0} },
+      { text: 'The powerhouse — people know not to mess with you', emoji: '&#128170;', w:{G:2,R:2,B:2,W:0,U:0} },
+      { text: 'The helper — you’d rather everyone have a good time', emoji: '&#128578;', w:{W:3,G:2,U:1,B:0,R:0} },
+    ]
+  },
+  // Q5: Complexity — expanded to 4 options, better spread
+  {
+    q: 'When you pick up a new game, you prefer…',
+    emoji: '&#128218;',
+    options: [
+      { text: 'Something simple I can master quickly',                        emoji: '&#127919;', w:{W:2,R:2,G:1,U:0,B:0} },
+      { text: 'A moderate challenge with room to grow',                       emoji: '&#9878;&#65039;', w:{W:1,G:2,R:1,U:1,B:1} },
+      { text: 'Deep and complex — I want lots of options to explore',   emoji: '&#129513;', w:{U:2,B:2,G:1,W:0,R:0} },
+      { text: 'The most difficult thing available — I love mastering hard games', emoji: '&#128081;', w:{U:2,B:3,R:1,W:0,G:0} },
+    ]
+  },
+  // Q6: Victory — rebalanced, White gets more from the defensive win
+  {
+    q: 'What kind of victory feels the best?',
+    emoji: '&#127942;',
+    options: [
+      { text: 'Crushing someone in a direct fight',                          emoji: '&#128165;', w:{R:3,G:2,W:1,U:0,B:0} },
+      { text: 'Pulling off a plan that took ages to set up',                 emoji: '&#129710;', w:{U:2,B:3,R:0,W:1,G:0} },
+      { text: 'Watching your opponent slowly run out of options',            emoji: '&#9203;',   w:{B:3,U:1,W:2,R:0,G:0} },
+      { text: 'A single dramatic moment that flips everything',              emoji: '&#127754;&#65039;', w:{R:2,B:1,U:2,G:1,W:0} },
+      { text: 'Outlasting everyone through sheer resilience',                emoji: '&#127807;', w:{W:3,G:3,U:0,B:0,R:0} },
+    ]
+  },
+  // Q7: Possessions — rebalanced, White boosted
+  {
+    q: 'You’d rather have…',
+    emoji: '&#128246;',
+    options: [
+      { text: 'One incredible, irreplaceable thing',        emoji: '&#128142;', w:{B:2,U:1,W:1,R:2,G:0} },
+      { text: 'A lot of smaller things that add up',        emoji: '&#128202;', w:{W:3,G:2,R:1,U:0,B:0} },
+      { text: 'Lots of choices and flexibility',            emoji: '&#128256;', w:{U:2,G:2,W:1,B:1,R:0} },
+      { text: 'Something that keeps growing over time',     emoji: '&#127807;', w:{G:3,W:2,U:1,B:0,R:0} },
+    ]
+  },
+  // Q8: Pacing — expanded to 4 options
+  {
+    q: 'Your ideal movie is…',
+    emoji: '&#127916;',
+    options: [
+      { text: 'A quick action movie — fast, punchy, explosive',          emoji: '&#128165;', w:{R:3,B:1,W:1,U:0,G:0} },
+      { text: 'A smart thriller — tense, methodical, satisfying twist',  emoji: '&#9203;',   w:{U:2,B:2,W:1,R:0,G:0} },
+      { text: 'A feel-good adventure — characters you root for',         emoji: '&#127775;', w:{W:3,G:2,R:1,U:0,B:0} },
+      { text: 'A sprawling epic — massive world, earned conclusion',      emoji: '&#127756;', w:{G:2,W:2,U:2,B:1,R:0} },
+    ]
+  },
+  // Q9: Resilience — keep as-is, good spread
+  {
+    q: 'When your plan falls apart, you…',
+    emoji: '&#128165;',
+    options: [
+      { text: 'Already had a backup plan',                                   emoji: '&#128506;&#65039;', w:{U:2,W:2,B:1,R:0,G:1} },
+      { text: 'Improvise and adapt on the fly',                              emoji: '&#127928;', w:{R:3,G:2,U:0,B:0,W:1} },
+      { text: 'Accept it and try again — chaos is fun',                 emoji: '&#127922;', w:{R:2,B:2,G:1,U:0,W:1} },
+      { text: 'Try to prevent things going wrong in the first place',        emoji: '&#128737;&#65039;', w:{W:3,U:2,G:1,B:0,R:0} },
+    ]
+  },
+];
+
+// =============================================================================
+// COLOR IDENTITY DATA// =============================================================================
+// COLOR IDENTITY DATA — guilds, shards, mono
+// =============================================================================
+const COLOR_IDENTITIES = {
+  // Mono
+  'W':     { name:'The Peacekeeper',     guild:'Plains Walker',      desc:'You believe in order, protection, and doing what’s right. Your deck wins through unity, resilience, and outlasting everyone at the table.',     colors:['W'] },
+  'U':     { name:'The Mastermind',      guild:'Island Strategist',  desc:'You’re always five steps ahead. Your deck wins by controlling information, countering threats, and executing a plan nobody else could see coming.',  colors:['U'] },
+  'B':     { name:'The Schemer',         guild:'Swamp Lord',         desc:'Power at any cost. Your deck wins by exploiting every advantage, accumulating resources others can’t match, and eliminating threats before they arise.', colors:['B'] },
+  'R':     { name:'The Firebrand',       guild:'Mountain Raider',    desc:'Fast, fierce, and impossible to predict. Your deck wins by hitting hard and fast before anyone can set up their strategy.',                            colors:['R'] },
+  'G':     { name:'The Force of Nature', guild:'Forest Shaman',      desc:'You believe in raw power and natural growth. Your deck wins by ramping to enormous creatures and overwhelming the table with sheer force.',           colors:['G'] },
+  // Guilds
+  'WU':    { name:'The Visionary',       guild:'Azorius Senate',     desc:'Order and intellect in perfect balance. You build structures others must navigate, using law and logic to control the game.',                          colors:['W','U'] },
+  'WB':    { name:'The Tactician',       guild:'Orzhov Syndicate',   desc:'Calculated and relentless. You trade resources efficiently, drain opponents’ will, and accumulate advantages they can never fully address.',       colors:['W','B'] },
+  'WR':    { name:'The Champion',        guild:'Boros Legion',       desc:'Aggressive and righteous. You charge into battle with an army of creatures, winning through speed, teamwork, and unstoppable momentum.',              colors:['W','R'] },
+  'WG':    { name:'The Guardian',        guild:'Selesnya Conclave',  desc:'Strength in numbers. You grow a massive presence on the battlefield through tokens, counters, and the power of community.',                           colors:['W','G'] },
+  'UB':    { name:'The Architect',       guild:'Dimir House',        desc:'Cunning and secretive. You manipulate what others can do, gather information, and win through combinations they never see coming.',                    colors:['U','B'] },
+  'UR':    { name:'The Innovator',       guild:'Izzet League',       desc:'Brilliant and chaotic. You cast spells at a blistering pace, copy effects, and win with explosive turns powered by raw magical energy.',              colors:['U','R'] },
+  'UG':    { name:'The Evolutionist',    guild:'Simic Combine',      desc:'Adaptive and unstoppable. You combine growth with intelligence — ramping your resources while evolving your threats into something unbeatable.',  colors:['U','G'] },
+  'BR':    { name:'The Anarchist',       guild:'Rakdos Cult',        desc:'Destructive and unpredictable. You sacrifice and destroy without hesitation, winning through explosive aggression and a total disregard for the rules.', colors:['B','R'] },
+  'BG':    { name:'The Harvester',       guild:'Golgari Swarm',      desc:'Death feeds life. You fill your graveyard as a resource, recycle fallen creatures, and grind opponents down through attrition and inevitability.',    colors:['B','G'] },
+  'RG':    { name:'The Berserker',       guild:'Gruul Clans',        desc:'Primal and unstoppable. You care about one thing: overwhelming power. Massive creatures, explosive mana, and turning sideways until someone falls.',  colors:['R','G'] },
+};
+
+// Beginner-friendly commander recommendations per color identity.
+// complexity: 1=simplest, 2=moderate, 3=more complex
+const COMMANDERS = {
+  'W':  [
+    { name:'Linden, the Steadfast Queen', why:'Straightforward life gain that rewards playing white creatures. Simple, consistent, and immediately powerful.', edhrec:'https://edhrec.com/commanders/linden-the-steadfast-queen', complexity:1 },
+    { name:'Odric, Lunarch Marshal',      why:'Shares keywords across your whole team. Great for learning how combat abilities work in Magic.', edhrec:'https://edhrec.com/commanders/odric-lunarch-marshal', complexity:1 },
+  ],
+  'U':  [
+    { name:'Talrand, Sky Summoner',       why:'Every instant or sorcery you cast creates a flying token. A natural introduction to spell-based strategies.', edhrec:'https://edhrec.com/commanders/talrand-sky-summoner', complexity:1 },
+    { name:'Teferi, Temporal Archmage',   why:'Time magic and extra turns. Perfect for players who love control and planning ahead.', edhrec:'https://edhrec.com/commanders/teferi-temporal-archmage', complexity:2 },
+  ],
+  'B':  [
+    { name:'Ayara, First of Locthwain',   why:'Drains life whenever a black creature enters. Simple, effective, and teaches sacrifice strategies naturally.', edhrec:'https://edhrec.com/commanders/ayara-first-of-locthwain', complexity:1 },
+    { name:'Wilhelt, the Rotcleaver',     why:'Creates zombie tokens when your creatures die. A great introduction to sacrifice and recursion themes.', edhrec:'https://edhrec.com/commanders/wilhelt-the-rotcleaver', complexity:1 },
+  ],
+  'R':  [
+    { name:'Purphoros, God of the Forge', why:'Deals damage every time a creature enters the battlefield. Dead simple and extremely effective.', edhrec:'https://edhrec.com/commanders/purphoros-god-of-the-forge', complexity:1 },
+    { name:'Neheb, the Eternal',          why:'Generates huge amounts of mana after combat. Perfect for big explosive turns and red spells.', edhrec:'https://edhrec.com/commanders/neheb-the-eternal', complexity:1 },
+  ],
+  'G':  [
+    { name:'Azusa, Lost but Seeking',     why:'Lets you play extra lands every turn. A natural starting point for learning ramp strategies.', edhrec:'https://edhrec.com/commanders/azusa-lost-but-seeking', complexity:1 },
+    { name:'Omnath, Locus of Mana',       why:'Gets bigger the more mana you have. Simple, powerful, and teaches green’s core identity immediately.', edhrec:'https://edhrec.com/commanders/omnath-locus-of-mana', complexity:1 },
+  ],
+  'WU': [
+    { name:'Raff Capashen, Ship\'s Mage', why:'Lets you cast artifacts and historic spells at instant speed. Great introduction to tempo and card advantage.', edhrec:'https://edhrec.com/commanders/raff-capashen-ships-mage', complexity:1 },
+    { name:'Sram, Senior Edificer',       why:'Draws a card whenever you cast equipment or auras. Simple card advantage engine that teaches the Voltron archetype.', edhrec:'https://edhrec.com/commanders/sram-senior-edificer', complexity:1 },
+    { name:'Brago, King Eternal',         why:'Blinks your permanents when it deals combat damage. A satisfying introduction to flicker strategies.', edhrec:'https://edhrec.com/commanders/brago-king-eternal', complexity:2 },
+  ],
+  'WB': [
+    { name:'Teysa Karlov',                why:'Doubles death triggers and creates tokens. Perfect for learning aristocrats strategies in a forgiving color pair.', edhrec:'https://edhrec.com/commanders/teysa-karlov', complexity:1 },
+    { name:'Kambal, Consul of Allocation',why:'Drains opponents whenever they cast noncreature spells. Passive, powerful, and very easy to build around.', edhrec:'https://edhrec.com/commanders/kambal-consul-of-allocation', complexity:1 },
+  ],
+  'WR': [
+    { name:'Iroas, God of Victory',       why:'Your attacking creatures are virtually unstoppable. Perfect for learning aggressive strategies.', edhrec:'https://edhrec.com/commanders/iroas-god-of-victory', complexity:1 },
+    { name:'Winota, Joiner of Forces',    why:'Cheats non-human creatures into play when humans attack. Explosive and exciting for newer players.', edhrec:'https://edhrec.com/commanders/winota-joiner-of-forces', complexity:1 },
+  ],
+  'WG': [
+    { name:'Rhys the Redeemed',           why:'Creates tokens and doubles them. The quintessential token strategy — simple, scalable, and satisfying.', edhrec:'https://edhrec.com/commanders/rhys-the-redeemed', complexity:1 },
+    { name:'Emmara, Soul of the Accord',  why:'Creates tokens whenever she taps. Easy to understand and pairs naturally with tap effects.', edhrec:'https://edhrec.com/commanders/emmara-soul-of-the-accord', complexity:1 },
+  ],
+  'UB': [
+    { name:'Phenax, God of Deception',    why:'Mills opponents using your creatures’ toughness. A unique win condition that’s easy to build around.', edhrec:'https://edhrec.com/commanders/phenax-god-of-deception', complexity:1 },
+    { name:'Lazav, the Multifarious',     why:'Copies creatures from graveyards. Great introduction to graveyard strategies and shapeshifter themes.', edhrec:'https://edhrec.com/commanders/lazav-the-multifarious', complexity:2 },
+  ],
+  'UR': [
+    { name:'Mizzix of the Izmagnus',      why:'Makes your instants and sorceries cheaper as you cast more. A natural introduction to spellslinger strategies.', edhrec:'https://edhrec.com/commanders/mizzix-of-the-izmagnus', complexity:1 },
+    { name:'Adeliz, the Cinder Wind',     why:'Pumps all your Wizards whenever you cast an instant or sorcery. Simple, aggressive, and satisfying.', edhrec:'https://edhrec.com/commanders/adeliz-the-cinder-wind', complexity:1 },
+  ],
+  'UG': [
+    { name:'Aesi, Tyrant of Gyre Strait', why:'Draws a card whenever a land enters. Easy ramp-and-draw strategy that feels great and is hard to mess up.', edhrec:'https://edhrec.com/commanders/aesi-tyrant-of-gyre-strait', complexity:1 },
+    { name:'Kiora, Behemoth Beckoner',    why:'Untaps permanents and draws cards when big creatures enter. Perfect introduction to green’s big-creature identity.', edhrec:'https://edhrec.com/commanders/kiora-behemoth-beckoner', complexity:1 },
+  ],
+  'BR': [
+    { name:'Rakdos, Lord of Riots',       why:'Makes big creatures free to cast. Spectacularly explosive — great for players who love high-impact turns.', edhrec:'https://edhrec.com/commanders/rakdos-lord-of-riots', complexity:1 },
+    { name:'Judith, the Scourge Diva',    why:'Pumps your creatures and deals damage when they die. Easy to understand and rewards aggressive play.', edhrec:'https://edhrec.com/commanders/judith-the-scourge-diva', complexity:1 },
+  ],
+  'BG': [
+    { name:'Meren of Clan Nel Toth',      why:'Brings creatures back from the graveyard. The best introduction to recursion strategies — forgiving and powerful.', edhrec:'https://edhrec.com/commanders/meren-of-clan-nel-toth', complexity:1 },
+    { name:'Jarad, Golgari Lich Lord',    why:'Sacrifices creatures to deal damage to everyone. Simple, direct, and teaches sacrifice strategies naturally.', edhrec:'https://edhrec.com/commanders/jarad-golgari-lich-lord', complexity:1 },
+  ],
+  'RG': [
+    { name:'Xenagos, God of Revels',      why:'Doubles the power of your biggest creature when it attacks. Straightforward, explosive, and incredibly satisfying.', edhrec:'https://edhrec.com/commanders/xenagos-god-of-revels', complexity:1 },
+    { name:'Surrak Dragonclaw',           why:'Makes your creatures uncounterable and gives them trample. Perfect for learning big-creature strategies.', edhrec:'https://edhrec.com/commanders/surrak-dragonclaw', complexity:1 },
+  ],
+};
+
+// =============================================================================
+// QUIZ STATE + ENGINE
+// =============================================================================
+var quizAnswers = [];
+var quizCurrent = 0;
+var complexityTier = 1; // 0=newcomer,1=casual,2=experienced,3=veteran
+
+function startQuiz() {
+  quizAnswers = new Array(QUESTIONS.length).fill(null);
+  quizCurrent = 0;
+  complexityTier = 1;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  var q = QUESTIONS[quizCurrent];
+  var total = QUESTIONS.length;
+
+  document.getElementById('quiz-q-num').textContent = 'Question ' + (quizCurrent+1) + ' of ' + total;
+  document.getElementById('quiz-question').innerHTML = q.emoji + ' ' + q.q;
+  document.getElementById('quiz-progress').style.width = ((quizCurrent / total) * 100) + '%';
+
+  var optContainer = document.getElementById('quiz-options');
+  optContainer.innerHTML = '';
+  q.options.forEach(function(opt, i) {
+    var btn = document.createElement('div');
+    btn.className = 'quiz-option' + (quizAnswers[quizCurrent] === i ? ' selected' : '');
+    btn.innerHTML = '<span class="quiz-option-emoji">' + opt.emoji + '</span><span>' + opt.text + '</span>';
+    btn.addEventListener('click', function() {
+      quizAnswers[quizCurrent] = i;
+      // If experience question, capture tier
+      if (q.special === 'experience') complexityTier = opt.tier;
+      optContainer.querySelectorAll('.quiz-option').forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      document.getElementById('quiz-next').disabled = false;
+    });
+    optContainer.appendChild(btn);
+  });
+
+  document.getElementById('quiz-next').disabled = (quizAnswers[quizCurrent] === null);
+  document.getElementById('quiz-prev').style.visibility = (quizCurrent === 0) ? 'hidden' : 'visible';
+
+  var nextBtn = document.getElementById('quiz-next');
+  nextBtn.textContent = (quizCurrent === total - 1) ? 'See My Result →' : 'Next →';
+}
+
+document.getElementById('quiz-next').addEventListener('click', function() {
+  if (quizAnswers[quizCurrent] === null) return;
+  if (quizCurrent < QUESTIONS.length - 1) {
+    quizCurrent++;
+    renderQuestion();
+  } else {
+    computeAndShowResult();
+  }
+});
+
+document.getElementById('quiz-prev').addEventListener('click', function() {
+  if (quizCurrent > 0) { quizCurrent--; renderQuestion(); }
+});
+
+// =============================================================================
+// SCORING + RESULT
+// =============================================================================
+function computeAndShowResult() {
+  // Sum weights across all answers
+  var scores = { W:0, U:0, B:0, R:0, G:0 };
+  QUESTIONS.forEach(function(q, qi) {
+    var ansIdx = quizAnswers[qi];
+    if (ansIdx === null) return;
+    var w = q.options[ansIdx].w;
+    Object.keys(w).forEach(function(c) { scores[c] += w[c]; });
+  });
+
+  // Sort colors by score
+  var sorted = Object.entries(scores).sort(function(a,b) { return b[1]-a[1]; });
+
+  // Color key helper — sorts letters to match COMMANDERS key format
+  // e.g. G+W -> 'GW' but our keys use MTG WUBRG order, so we sort by that
+  var WUBRG_ORDER = 'WUBRG';
+  function colorKey(colorsArr) {
+    return colorsArr.slice().sort(function(a, b) {
+      return WUBRG_ORDER.indexOf(a) - WUBRG_ORDER.indexOf(b);
+    }).join('');
+  }
+
+  // Determine color identity based on complexity tier
+  var identity;
+  if (complexityTier === 0) {
+    // Total newcomer: mono only
+    identity = sorted[0][0];
+  } else if (complexityTier === 1) {
+    // Casual: 1-2 colors. Use 2 if second color score is close enough
+    var top = sorted[0][1], second = sorted[1][1];
+    identity = (second >= top * 0.65)
+      ? colorKey([sorted[0][0], sorted[1][0]])
+      : sorted[0][0];
+  } else {
+    // Experienced/Veteran: 2 colors default
+    identity = colorKey([sorted[0][0], sorted[1][0]]);
+  }
+
+  // Verify the identity key exists in our data — fall back to mono if not
+  if (!COLOR_IDENTITIES[identity]) identity = sorted[0][0];
+
+  var identityData = COLOR_IDENTITIES[identity];
+
+  // Commander lookup — strict: only return commanders for the exact identity.
+  // Never fall through to a different color identity's commanders.
+  function getCmdrsForIdentity(id) {
+    if (COMMANDERS[id]) return COMMANDERS[id];
+    // If 2-color key not found, fall back to PRIMARY color only
+    // (never show multi-color commanders for a mono result or vice versa)
+    if (id.length > 1) return COMMANDERS[id[0]] || [];
+    return [];
+  }
+  var commanders = getCmdrsForIdentity(identity).filter(function(c) {
+    if (complexityTier === 0) return c.complexity <= 1;
+    if (complexityTier === 1) return c.complexity <= 2;
+    return true;
+  });
+
+  showResult(identity, identityData, commanders, scores);
+}
+
+const PIP_COLORS = { W:'#f9e8a0', U:'#6ab0f5', B:'#c084fc', R:'#f87171', G:'#4ade80' };
+const PIP_BG     = { W:'rgba(249,232,160,0.15)', U:'rgba(106,176,245,0.15)', B:'rgba(192,132,252,0.15)', R:'rgba(248,113,113,0.15)', G:'rgba(74,222,128,0.15)' };
+
+function showResult(identity, data, commanders, scores) {
+  showView('result-view');
+
+  var content = document.getElementById('result-content');
+  content.innerHTML = '';
+
+  // Pips reveal
+  var revealDiv = document.createElement('div');
+  revealDiv.className = 'result-reveal';
+
+  var pipsDiv = document.createElement('div');
+  pipsDiv.className = 'result-pips';
+  data.colors.forEach(function(c) {
+    var pip = document.createElement('div');
+    pip.className = 'result-pip';
+    pip.style.background = PIP_BG[c];
+    pip.style.border = '2px solid ' + PIP_COLORS[c];
+    pip.style.color = PIP_COLORS[c];
+    pip.textContent = c;
+    pipsDiv.appendChild(pip);
+  });
+  revealDiv.appendChild(pipsDiv);
+
+  var nameDiv = document.createElement('div');
+  nameDiv.className = 'result-identity-name';
+  nameDiv.textContent = 'You are ' + data.name;
+  revealDiv.appendChild(nameDiv);
+
+  var guildDiv = document.createElement('div');
+  guildDiv.style.cssText = 'font-family:Fredoka One,cursive;font-size:14px;color:var(--text-dim);margin-bottom:14px;letter-spacing:2px;text-transform:uppercase;';
+  guildDiv.textContent = data.guild;
+  revealDiv.appendChild(guildDiv);
+
+  var descDiv = document.createElement('div');
+  descDiv.className = 'result-identity-desc';
+  descDiv.textContent = data.desc;
+  revealDiv.appendChild(descDiv);
+
+  content.appendChild(revealDiv);
+
+  // Why box
+  var whyBox = document.createElement('div');
+  whyBox.className = 'result-why-box';
+  whyBox.innerHTML = '<strong style="font-family:Fredoka One,cursive;color:var(--foam);display:block;margin-bottom:8px;">🎯 Why this fits you</strong>'
+    + 'Based on your answers, you value '
+    + getPersonalityBlurb(identity, scores)
+    + ' In Commander, this translates directly into how ' + data.guild + ' players approach the game.';
+  content.appendChild(whyBox);
+
+  // Commander suggestions
+  if (commanders.length > 0) {
+    var cmdrTitle = document.createElement('div');
+    cmdrTitle.className = 'result-section-title';
+    cmdrTitle.textContent = '👑 Commanders to Start With';
+    content.appendChild(cmdrTitle);
+
+    var cmdrGrid = document.createElement('div');
+    cmdrGrid.className = 'result-commanders';
+
+    commanders.forEach(function(cmdr) {
+      var card = document.createElement('div');
+      card.className = 'result-cmdr-card';
+
+      // Fetch card image from Scryfall
+      var img = document.createElement('img');
+      img.className = 'result-cmdr-img';
+      img.alt = cmdr.name;
+      img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; // transparent placeholder
+      fetch('https://api.scryfall.com/cards/named?exact=' + encodeURIComponent(cmdr.name), { mode:'cors' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var imgUrl = data.image_uris
+            ? data.image_uris.normal
+            : (data.card_faces && data.card_faces[0].image_uris ? data.card_faces[0].image_uris.normal : null);
+          if (imgUrl) img.src = imgUrl;
+        }).catch(function() {});
+
+      var body = document.createElement('div');
+      body.className = 'result-cmdr-body';
+      body.innerHTML = '<div class="result-cmdr-name">' + escapeHtml(cmdr.name) + '</div>'
+        + '<div class="result-cmdr-why">' + escapeHtml(cmdr.why) + '</div>'
+        + '<a href="' + cmdr.edhrec + '" target="_blank" rel="noopener" class="result-cmdr-link">View on EDHREC ↗</a>';
+
+      card.appendChild(img);
+      card.appendChild(body);
+      cmdrGrid.appendChild(card);
+    });
+    content.appendChild(cmdrGrid);
+  }
+
+  // Action buttons
+  var actions = document.createElement('div');
+  actions.className = 'result-actions';
+  var retakeBtn = document.createElement('button');
+  retakeBtn.className = 'result-btn-retake';
+  retakeBtn.textContent = '🔄 Retake the Quiz';
+  retakeBtn.addEventListener('click', function() { startQuiz(); showView('quiz-view'); });
+  var analyzerBtn = document.createElement('button');
+  analyzerBtn.className = 'result-btn-analyzer';
+  analyzerBtn.textContent = '🔬 Try the Deck Analyzer';
+  analyzerBtn.addEventListener('click', function() { showView('analyzer-view'); });
+  actions.appendChild(retakeBtn);
+  actions.appendChild(analyzerBtn);
+  content.appendChild(actions);
+
+  // Animate pips in with stagger
+  setTimeout(function() {
+    var pips = pipsDiv.querySelectorAll('.result-pip');
+    pips.forEach(function(pip, i) {
+      setTimeout(function() { pip.classList.add('show'); }, i * 250);
+    });
+  }, 100);
+}
+
+function getPersonalityBlurb(identity, scores) {
+  var top = Object.entries(scores).sort(function(a,b){return b[1]-a[1];})[0][0];
+  var blurbs = {
+    W: 'structure, teamwork, and protecting what matters. ',
+    U: 'strategy, information, and having a plan for everything. ',
+    B: 'power, efficiency, and doing whatever it takes to win. ',
+    R: 'speed, intensity, and living in the moment. ',
+    G: 'raw power, natural growth, and overwhelming force. ',
+  };
+  return blurbs[top] || 'a unique blend of strategies. ';
+}
+
+// Show landing on load
+showView('landing-view');
 
 </script>
 </body>

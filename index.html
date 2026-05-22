@@ -903,6 +903,110 @@
     margin-left:auto;white-space:nowrap;
   }
   .btn-buy-all:hover{background:rgba(46,196,182,0.2);border-color:var(--teal);transform:translateY(-1px);}
+
+  /* ---------- Deck Visualizations ---------- */
+  .viz-panel {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 32px;
+  }
+  .viz-headline {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--yellow);
+    margin-bottom: 20px;
+  }
+  .viz-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 640px) { .viz-grid { grid-template-columns: 1fr; } }
+  .viz-chart {
+    background: var(--water-deep);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .viz-chart-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    color: var(--foam);
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+  }
+  .viz-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+  }
+  .viz-bar-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    width: 90px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .viz-bar-track {
+    flex: 1;
+    background: var(--water-mid);
+    border-radius: 999px;
+    height: 10px;
+    overflow: hidden;
+  }
+  .viz-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .viz-bar-count {
+    font-size: 11px;
+    color: var(--text-dim);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+    font-family: 'Fredoka One', cursive;
+  }
+  .viz-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .viz-donut-svg {
+    flex-shrink: 0;
+  }
+  .viz-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 100px;
+  }
+  .viz-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .viz-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .viz-legend-pct {
+    margin-left: auto;
+    color: var(--text-dim);
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
@@ -1090,6 +1194,7 @@ async function fetchCards(entries, onProgress) {
 
     const resp = await fetch('https://api.scryfall.com/cards/collection', {
       method: 'POST',
+      mode: 'cors',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ identifiers })
     });
@@ -1125,7 +1230,7 @@ async function fetchCards(entries, onProgress) {
       const entry = stillMissing[i];
       try {
         const url = 'https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(entry.name);
-        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const resp = await fetch(url, { mode: 'cors', headers: { 'Accept': 'application/json' } });
 
         if (resp.ok) {
           const card = await resp.json();
@@ -2367,6 +2472,133 @@ function renderResults(report) {
   curveSection.appendChild(curveGrid);
   root.appendChild(curveSection);
 
+
+  // ----- Deck Visualizations -----
+  {
+    // Color counts from color_identity across all cards
+    const colorCounts = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+    const colorNames  = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless' };
+    const colorHex    = { W: '#f9e8a0', U: '#6ab0f5', B: '#c084fc', R: '#f87171', G: '#4ade80', C: '#94a3b8' };
+
+    for (const e of report.entries) {
+      if (!e.card) continue;
+      const ci = e.card.color_identity || [];
+      if (ci.length === 0) { colorCounts.C += e.count; }
+      else { for (const c of ci) { if (c in colorCounts) colorCounts[c] += e.count; } }
+    }
+
+    // Type counts from byType
+    const typeCounts = {};
+    const typeColors = {
+      Creature: '#4ade80', Instant: '#6ab0f5', Sorcery: '#a78bfa',
+      Artifact: '#94a3b8', Enchantment: '#f9e8a0', Planeswalker: '#fb923c',
+      Land: '#a16207', Battle: '#f87171', Other: '#64748b'
+    };
+    for (const [key] of Object.entries(report.byType)) {
+      const group = report.byType[key];
+      if (!group || group.length === 0) continue;
+      const total = group.reduce((s, e) => s + e.count, 0);
+      if (total > 0) typeCounts[key] = total;
+    }
+
+    const vizPanel = el('div', 'viz-panel');
+    vizPanel.innerHTML = '<div class="viz-headline">\uD83D\uDCCA Deck Breakdown</div><div class="viz-grid" id="viz-grid-inner"></div>';
+    root.appendChild(vizPanel);
+    const vizGrid = vizPanel.querySelector('#viz-grid-inner');
+
+    // ── Chart A: Color Distribution (donut) ──────────────────────────────────
+    const colorEntries = Object.entries(colorCounts)
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1]);
+    const colorTotal = colorEntries.reduce((s, [, n]) => s + n, 0);
+
+    if (colorEntries.length > 0) {
+      const chartA = el('div', 'viz-chart');
+      chartA.innerHTML = '<div class="viz-chart-title">Color Distribution</div><div class="viz-donut-wrap"><svg class="viz-donut-svg" id="donut-svg" width="110" height="110" viewBox="0 0 110 110"></svg><div class="viz-legend" id="donut-legend"></div></div>';
+      vizGrid.appendChild(chartA);
+
+      // Build donut segments
+      const svg = chartA.querySelector('#donut-svg');
+      const legend = chartA.querySelector('#donut-legend');
+      const cx = 55, cy = 55, r = 42, stroke = 18;
+      const circumference = 2 * Math.PI * r;
+      let offset = -circumference / 4; // start at top
+
+      for (const [color, count] of colorEntries) {
+        const pct = count / colorTotal;
+        const dash = pct * circumference;
+        const gap  = circumference - dash;
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', cx);
+        circle.setAttribute('cy', cy);
+        circle.setAttribute('r', r);
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', colorHex[color]);
+        circle.setAttribute('stroke-width', stroke);
+        circle.setAttribute('stroke-dasharray', `${dash} ${gap}`);
+        circle.setAttribute('stroke-dashoffset', -offset);
+        circle.setAttribute('style', 'transition: stroke-dashoffset 0.5s ease');
+        svg.appendChild(circle);
+        offset += dash;
+
+        // Legend item
+        const item = document.createElement('div');
+        item.className = 'viz-legend-item';
+        item.innerHTML = `<div class="viz-legend-dot" style="background:${colorHex[color]}"></div>`
+          + `<span>${colorNames[color]}</span>`
+          + `<span class="viz-legend-pct">${Math.round(pct * 100)}%</span>`;
+        legend.appendChild(item);
+      }
+
+      // Center label
+      const centerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      centerText.setAttribute('x', cx);
+      centerText.setAttribute('y', cy - 6);
+      centerText.setAttribute('text-anchor', 'middle');
+      centerText.setAttribute('fill', 'var(--foam)');
+      centerText.setAttribute('font-family', 'Fredoka One, cursive');
+      centerText.setAttribute('font-size', '18');
+      centerText.textContent = colorTotal;
+      svg.appendChild(centerText);
+      const subText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      subText.setAttribute('x', cx);
+      subText.setAttribute('y', cy + 12);
+      subText.setAttribute('text-anchor', 'middle');
+      subText.setAttribute('fill', 'var(--text-dim)');
+      subText.setAttribute('font-family', 'Nunito, sans-serif');
+      subText.setAttribute('font-size', '10');
+      subText.textContent = 'cards';
+      svg.appendChild(subText);
+    }
+
+    // ── Chart B: Card Type Breakdown (horizontal bars) ────────────────────────
+    const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+    const typeMax = typeEntries.length ? typeEntries[0][1] : 1;
+
+    if (typeEntries.length > 0) {
+      const chartB = el('div', 'viz-chart');
+      chartB.innerHTML = '<div class="viz-chart-title">Card Type Breakdown</div><div id="type-bars"></div>';
+      vizGrid.appendChild(chartB);
+      const barsDiv = chartB.querySelector('#type-bars');
+
+      for (const [type, count] of typeEntries) {
+        const pct = Math.round((count / typeMax) * 100);
+        const row = document.createElement('div');
+        row.className = 'viz-bar-row';
+        row.innerHTML = `<div class="viz-bar-label">${type}s</div>`
+          + `<div class="viz-bar-track"><div class="viz-bar-fill" style="width:0%;background:${typeColors[type] || '#64748b'}"></div></div>`
+          + `<div class="viz-bar-count">${count}</div>`;
+        barsDiv.appendChild(row);
+        // Animate bar after paint
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            row.querySelector('.viz-bar-fill').style.width = pct + '%';
+          });
+        });
+      }
+    }
+  }
+
   // ----- Card roster grouped by type -----
   const rosterSection = el('div', 'section');
   rosterSection.innerHTML = `
@@ -2681,7 +2913,7 @@ async function scryfallSearch(query, colorIdentity, extra) {
   const fullQuery = query + ' id<=' + ciStr + ' legal:commander' + (extra ? ' ' + extra : '');
   const url = 'https://api.scryfall.com/cards/search?order=edhrec&q=' + encodeURIComponent(fullQuery);
   try {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+    const resp = await fetch(url, { mode: 'cors', headers: { Accept: 'application/json' } });
     if (!resp.ok) return [];
     const data = await resp.json();
     return data.data || [];
@@ -2883,7 +3115,7 @@ async function runOptimizer(report) {
     GAME_CHANGERS.forEach(function(n) { if (!inDeckNames.has(n)) gcNames.push(n); });
     for (var gi = 0; gi < gcNames.length; gi += 20) {
       var chunk = gcNames.slice(gi, gi + 20);
-      var q = chunk.map(function(n) { return '!"' + n + '"'; }).join(' or ');
+      var q = '(' + chunk.map(function(n) { return '!"' + n + '"'; }).join(' or ') + ')';
       var results = await scryfallSearch(q, colorId);
       await new Promise(function(r) { setTimeout(r, 120); });
       for (var ci = 0; ci < results.length; ci++) {
@@ -2906,7 +3138,7 @@ async function runOptimizer(report) {
   });
   for (var hi = 0; hi < hiNames.length; hi += 20) {
     var chunk2 = hiNames.slice(hi, hi + 20);
-    var q2 = chunk2.map(function(n) { return '!"' + n + '"'; }).join(' or ');
+    var q2 = '(' + chunk2.map(function(n) { return '!"' + n + '"'; }).join(' or ') + ')';
     var results2 = await scryfallSearch(q2, colorId);
     await new Promise(function(r) { setTimeout(r, 120); });
     for (var ci2 = 0; ci2 < results2.length; ci2++) {
@@ -3131,7 +3363,11 @@ async function continueAnalysis() {
   try {
     await fetchCards(entries, (msg) => setStatus(`<span class="spinner"></span> ${msg}`, ''));
   } catch (err) {
-    setStatus('Scryfall error: ' + err.message, 'error');
+    const msg = err.message || String(err);
+    const hint = msg.includes('fetch') || msg.includes('Load') || msg.includes('Failed')
+      ? msg + ' — try refreshing the page, or check your internet connection.'
+      : msg;
+    setStatus('Scryfall error: ' + hint, 'error');
     $btn.disabled = false;
     return;
   }

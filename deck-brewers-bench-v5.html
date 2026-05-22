@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Brewer's Bench — MTG Commander Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  /* =====================================================================
+     DESIGN SYSTEM
+     Color variables and shared styles. Inherits from the Otter Nonsense
+     aesthetic but generalized so we can re-skin per deck later if we want.
+     ===================================================================== */
+  :root {
+    --bg: #0e1c2f;
+    --water-deep: #0a2540;
+    --water-mid: #103a5e;
+    --water-light: #1a5276;
+    --surface: #0f2540;
+    --surface2: #152e4d;
+    --border: #1e4068;
+    --teal: #2ec4b6;
+    --orange: #ff7b29;
+    --yellow: #ffd166;
+    --coral: #ff6b6b;
+    --foam: #b8e0f7;
+    --text: #d4eaf7;
+    --text-dim: #6a90b0;
+
+    /* MTG color identity swatches (used for color pips) */
+    --mtg-w: #f8f6d8;
+    --mtg-u: #2a5f9e;
+    --mtg-b: #2b2b2b;
+    --mtg-r: #9e2a2a;
+    --mtg-g: #2e6b3e;
+    --mtg-c: #a0a8b0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    overflow-x: hidden;
+    min-height: 100vh;
+    transition: background 0.6s ease, color 0.6s ease, opacity 0.2s ease;
+  }
+
+  /* Smooth theme transitions on key structural surfaces */
+  .app-header, .input-panel, .stat, .card-tile,
+  .bracket-panel, .archetype-panel, .legality-panel,
+  .modal, .section-head {
+    transition: background 0.6s ease, border-color 0.6s ease;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 20% 80%, rgba(46,196,182,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(255,123,41,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    position: relative;
+    background: linear-gradient(180deg, #0a3358 0%, #0e1c2f 100%);
+    padding: 48px 24px 64px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .app-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: -10%;
+    width: 120%; height: 50px;
+    background: var(--bg);
+    clip-path: ellipse(55% 100% at 50% 100%);
+  }
+  .eyebrow {
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .app-header h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(34px, 7vw, 58px);
+    color: var(--yellow);
+    line-height: 1.05;
+    margin-bottom: 6px;
+    text-shadow: 0 4px 24px rgba(255,209,102,0.3);
+  }
+  .tagline {
+    font-size: 15px;
+    color: var(--foam);
+    font-style: italic;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Main layout ---------- */
+  .main {
+    position: relative;
+    z-index: 1;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* ---------- Input panel ---------- */
+  .input-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+  }
+  .input-panel h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--yellow);
+    margin-bottom: 4px;
+  }
+  .input-panel .helper {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  textarea.decklist {
+    width: 100%;
+    min-height: 220px;
+    background: var(--water-deep);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Nunito', monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    resize: vertical;
+  }
+  textarea.decklist:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(46,196,182,0.15);
+  }
+  .action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--teal), #1a9d92);
+    color: #07171f;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(46,196,182,0.35); }
+  .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--foam); border-color: var(--teal); }
+  .status {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-style: italic;
+    min-height: 1.2em;
+  }
+  .status.error { color: var(--coral); font-style: normal; }
+  .status.success { color: var(--teal); }
+
+  /* ---------- Results: shared section/stat styles ---------- */
+  .results-wrap { display: none; }
+  .results-wrap.visible { display: block; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 14px;
+    text-align: center;
+  }
+  .stat .val {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat .lbl {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .v-great { color: var(--teal); }
+  .v-good { color: #6bcb77; }
+  .v-ok { color: var(--yellow); }
+  .v-low { color: var(--coral); }
+
+  .section { margin-bottom: 40px; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-emoji { font-size: 24px; }
+  .section-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--yellow);
+  }
+  .section-sub { font-size: 13px; color: var(--text-dim); font-style: italic; }
+
+  /* ---------- Color pips (for color identity) ---------- */
+  .color-pips {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .pip {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .pip-W { background: var(--mtg-w); color: #333; }
+  .pip-U { background: var(--mtg-u); color: #fff; }
+  .pip-B { background: var(--mtg-b); color: #fff; }
+  .pip-R { background: var(--mtg-r); color: #fff; }
+  .pip-G { background: var(--mtg-g); color: #fff; }
+  .pip-C { background: var(--mtg-c); color: #222; }
+
+  /* ---------- Card lists ---------- */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+  .card-tile {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--teal);
+    transition: transform 0.1s, border-color 0.15s;
+  }
+  .card-tile:hover { transform: translateY(-2px); border-color: var(--yellow); }
+  .card-tile .name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    color: var(--foam);
+    margin-bottom: 2px;
+  }
+  .card-tile .meta {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .card-tile .meta .mv { color: var(--yellow); }
+
+  .cat-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin: 24px 0 10px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-dim);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
+
+  /* ---------- Bracket badge ---------- */
+  .bracket-panel {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  @media (max-width: 640px) {
+    .bracket-panel { grid-template-columns: 1fr; text-align: center; }
+  }
+  .bracket-badge {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    border: 3px solid rgba(255,255,255,0.1);
+    margin: 0 auto;
+  }
+  .bracket-badge .num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 56px; line-height: 1;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .bracket-badge .lbl {
+    font-size: 9px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.85);
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .bracket-1 { background: linear-gradient(135deg, #4a7c47, #2e5a2c); }
+  .bracket-2 { background: linear-gradient(135deg, #2a8a9e, #1a5a6a); }
+  .bracket-3 { background: linear-gradient(135deg, #d4892a, #a35a14); }
+  .bracket-4 { background: linear-gradient(135deg, #c8403c, #7a1e1c); }
+  .bracket-5 { background: linear-gradient(135deg, #6b2d8e, #3a1452); }
+  .bracket-text .bracket-headline {
+    font-family: 'Fredoka One', cursive;
+    font-size: 24px; color: var(--yellow);
+    margin-bottom: 8px;
+  }
+  .bracket-text .bracket-reasoning { list-style: none; padding: 0; margin: 0; }
+  .bracket-text .bracket-reasoning li {
+    font-size: 14px; color: var(--text);
+    padding: 6px 0 6px 18px;
+    position: relative; line-height: 1.6;
+  }
+  .bracket-text .bracket-reasoning li::before {
+    content: '▸'; position: absolute; left: 0; color: var(--teal);
+  }
+  .gc-list { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .gc-chip {
+    background: rgba(255,123,41,0.15);
+    border: 1px solid rgba(255,123,41,0.4);
+    color: var(--orange);
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-family: 'Fredoka One', cursive;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .gc-chip:hover { background: rgba(255,123,41,0.3); }
+
+  /* ---------- Legality panel ---------- */
+  .legality-panel {
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    border: 1px solid var(--border);
+  }
+  .legality-panel.legal {
+    background: linear-gradient(135deg, #14391f, #122e1b);
+    border-color: #2e7a3e;
+  }
+  .legality-panel.illegal {
+    background: linear-gradient(135deg, #3a1a1a, #2a1212);
+    border-color: var(--coral);
+  }
+  .legality-headline {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px; margin-bottom: 8px;
+  }
+  .legality-panel.legal .legality-headline { color: #6bcb77; }
+  .legality-panel.illegal .legality-headline { color: var(--coral); }
+  .legality-issues { list-style: none; padding: 0; margin: 0; }
+  .legality-issues li {
+    font-size: 13px; color: var(--text);
+    padding: 5px 0;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    line-height: 1.55;
+  }
+  .legality-issues li:first-child { border-top: none; }
+
+  /* ---------- Card detail modal ---------- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 12, 22, 0.78);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    max-width: 880px;
+    width: 100%;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    animation: modal-in 0.18s ease-out;
+  }
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .modal-close:hover { color: var(--coral); border-color: var(--coral); }
+
+  .modal-body {
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 640px) {
+    .modal-body { grid-template-columns: 1fr; }
+  }
+  .modal-image-col img {
+    width: 100%;
+    border-radius: 14px;
+    display: block;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .modal-image-col img + img { margin-top: 12px; }
+
+  .modal-face {
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .modal-face:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .modal-face .face-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--yellow);
+    margin-bottom: 4px;
+  }
+  .modal-face .face-cost {
+    color: var(--teal);
+    font-family: 'Nunito', monospace;
+    font-size: 14px;
+    margin-left: 8px;
+  }
+  .modal-face .face-type {
+    font-size: 13px;
+    color: var(--foam);
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+  .modal-face .face-oracle {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .modal-face .face-flavor {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-face .face-pt {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 12px;
+    background: var(--water-deep);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    color: var(--foam);
+  }
+  .modal-meta {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .modal-meta a {
+    color: var(--teal);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--teal);
+  }
+  .modal-meta a:hover { color: var(--yellow); border-color: var(--yellow); }
+
+  /* ---------- Hover preview ---------- */
+  .card-preview {
+    position: fixed;
+    pointer-events: none;
+    z-index: 90;
+    width: 240px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+    display: none;
+    transition: opacity 0.08s;
+  }
+  .card-preview img { width: 100%; display: block; }
+  /* Hide preview on touch-only devices */
+  @media (hover: none) { .card-preview { display: none !important; } }
+
+  /* Make card tiles feel clickable */
+  .card-tile { cursor: pointer; user-select: none; }
+
+  /* ---------- Loading spinner ---------- */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Archetype panel ---------- */
+  .archetype-panel {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 32px;
+  }
+  .archetype-headline {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--yellow);
+    margin-bottom: 16px;
+  }
+  .archetype-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .archetype-emoji {
+    font-size: 32px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .archetype-label-block { flex: 1; min-width: 160px; }
+  .archetype-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: var(--foam);
+    margin-bottom: 2px;
+  }
+  .archetype-note {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .archetype-bar-block { flex: 2; min-width: 140px; }
+  .archetype-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+  .archetype-bar-label .pct {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: var(--teal);
+    line-height: 1;
+  }
+  .archetype-bar-label .pct-secondary {
+    color: var(--orange);
+  }
+  .archetype-bar-track {
+    background: var(--water-deep);
+    border-radius: 999px;
+    height: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .archetype-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--teal), #1a9d92);
+    transition: width 0.5s ease-out;
+  }
+  .archetype-bar-fill.secondary {
+    background: linear-gradient(90deg, var(--orange), #c85a00);
+  }
+  .archetype-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
+  }
+  .archetype-secondary-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+
+  .archetype-toggle-row {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .archetype-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .archetype-toggle-btn:hover { color: var(--foam); border-color: var(--teal); }
+  .archetype-toggle-btn.active { color: var(--teal); border-color: var(--teal); }
+  .archetype-toggle-btn.active-red { color: var(--coral); border-color: var(--coral); }
+  .archetype-toggle-btn .arrow { font-size: 10px; transition: transform 0.2s; }
+  .archetype-toggle-btn.open .arrow { transform: rotate(180deg); }
+  .archetype-expandable {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .archetype-expandable.open { display: block; }
+  .archetype-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .supporting-chip {
+    background: rgba(46, 196, 182, 0.1);
+    border: 1px solid rgba(46, 196, 182, 0.3);
+    color: var(--teal);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: 'Fredoka One', cursive;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .supporting-chip:hover { background: rgba(46, 196, 182, 0.22); }
+  .offtheme-chip {
+    background: rgba(255, 107, 107, 0.12);
+    border: 1px solid rgba(255, 107, 107, 0.35);
+    color: var(--coral);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: 'Fredoka One', cursive;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .offtheme-chip:hover { background: rgba(255, 107, 107, 0.25); }
+  .expand-section-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  /* ---------- Commander picker ---------- */
+  .cmdr-picker {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-top: 14px;
+    animation: modal-in 0.18s ease-out;
+  }
+  .cmdr-picker-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 17px;
+    color: var(--yellow);
+    margin-bottom: 6px;
+  }
+  .cmdr-picker-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .cmdr-picker-search {
+    width: 100%;
+    background: var(--water-deep);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    outline: none;
+  }
+  .cmdr-picker-search:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 2px rgba(46,196,182,0.15);
+  }
+  .cmdr-picker-list {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--water-deep);
+  }
+  .cmdr-picker-item {
+    padding: 9px 14px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cmdr-picker-item:last-child { border-bottom: none; }
+  .cmdr-picker-item:hover { background: var(--water-mid); }
+  .cmdr-picker-item.selected {
+    background: rgba(46,196,182,0.12);
+    color: var(--teal);
+  }
+  .cmdr-picker-item .cmdr-item-name { flex: 1; font-family: 'Fredoka One', cursive; }
+  .cmdr-picker-item .cmdr-item-check { font-size: 16px; }
+  .cmdr-picker-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    align-items: center;
+  }
+  .cmdr-picker-confirm {
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    letter-spacing: 1px;
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--teal), #1a9d92);
+    color: #07171f;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .cmdr-picker-confirm:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(46,196,182,0.3); }
+  .cmdr-picker-confirm:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
+  .cmdr-picker-skip {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-family: 'Nunito', sans-serif;
+  }
+  .cmdr-picker-skip:hover { color: var(--foam); }
+
+  .archetype-toggle-btn.active-gold { color: var(--yellow); border-color: var(--yellow); }
+  .staple-chip {
+    background: rgba(255, 209, 102, 0.1);
+    border: 1px solid rgba(255, 209, 102, 0.3);
+    color: var(--yellow);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: 'Fredoka One', cursive;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .staple-chip:hover { background: rgba(255, 209, 102, 0.22); }
+
+  /* ---------- Optimizer panel ---------- */
+  .optimizer-panel {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 32px;
+  }
+  .optimizer-headline { font-family: 'Fredoka One', cursive; font-size: 22px; color: var(--yellow); margin-bottom: 6px; }
+  .optimizer-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
+  .optimizer-controls { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 6px; }
+  .optimizer-field { display: flex; flex-direction: column; gap: 5px; }
+  .optimizer-field label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+  .optimizer-select, .optimizer-input {
+    background: var(--water-deep); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Nunito', sans-serif; font-size: 14px;
+    padding: 9px 12px; outline: none; transition: border-color 0.15s; min-width: 160px;
+  }
+  .optimizer-select:focus, .optimizer-input:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(46,196,182,0.15); }
+  .optimizer-input { width: 130px; }
+  .btn-optimizer {
+    font-family: 'Fredoka One', cursive; font-size: 14px; letter-spacing: 1px;
+    padding: 10px 24px; border-radius: 10px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--orange), #c85a00); color: #fff;
+    transition: transform 0.1s, box-shadow 0.15s, opacity 0.15s; white-space: nowrap;
+  }
+  .btn-optimizer:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(255,123,41,0.35); }
+  .btn-optimizer:disabled { opacity: 0.55; cursor: wait; transform: none; box-shadow: none; }
+  .optimizer-status { font-size: 12px; color: var(--text-dim); font-style: italic; margin-top: 8px; min-height: 1.4em; }
+  .optimizer-results { margin-top: 22px; display: none; }
+  .optimizer-results.visible { display: block; }
+  .bracket-down-warning {
+    background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.35);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 18px;
+    font-size: 13px; color: var(--coral); line-height: 1.6;
+  }
+  .bracket-down-warning strong { font-family: 'Fredoka One', cursive; font-size: 14px; display: block; margin-bottom: 4px; }
+  .optimizer-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media (max-width: 640px) { .optimizer-cols { grid-template-columns: 1fr; } }
+  .optimizer-col-head {
+    font-family: 'Fredoka One', cursive; font-size: 16px; margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .optimizer-col-head.cuts { color: var(--coral); }
+  .optimizer-col-head.adds { color: #6bcb77; }
+  .suggestion-card {
+    background: var(--water-deep); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+  .suggestion-card:hover { transform: translateY(-1px); border-color: var(--teal); }
+  .suggestion-card.cut { border-left: 3px solid var(--coral); }
+  .suggestion-card.add { border-left: 3px solid #6bcb77; }
+  .suggestion-card .s-name { font-family: 'Fredoka One', cursive; font-size: 14px; color: var(--foam); margin-bottom: 3px; }
+  .suggestion-card .s-reason { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .suggestion-card .s-meta { display: flex; gap: 10px; margin-top: 5px; font-size: 11px; }
+  .suggestion-card .s-price { color: #6bcb77; }
+  .suggestion-card .s-rank  { color: var(--text-dim); }
+  .land-suggestion-section { margin-bottom: 24px; }
+  .land-suggestion-head { font-family: 'Fredoka One', cursive; font-size: 15px; color: var(--yellow); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .land-suggestion-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+  .land-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+
+  .btn-buy-all {
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:'Fredoka One',cursive;font-size:12px;letter-spacing:1px;
+    padding:6px 14px;border-radius:8px;
+    border:1px solid rgba(46,196,182,0.4);
+    cursor:pointer;background:rgba(46,196,182,0.1);color:var(--teal);
+    text-decoration:none;transition:background 0.15s,border-color 0.15s,transform 0.1s;
+    margin-left:auto;white-space:nowrap;
+  }
+  .btn-buy-all:hover{background:rgba(46,196,182,0.2);border-color:var(--teal);transform:translateY(-1px);}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     HEADER
+     ===================================================================== -->
+<header class="app-header">
+  <div class="eyebrow">Magic the Gathering · Commander Format</div>
+  <h1>Deck Brewer's Bench</h1>
+  <p class="tagline">Paste a decklist. Get analysis, synergies, and ways to make it sharper.</p>
+</header>
+
+<main class="main">
+
+  <!-- =====================================================================
+       INPUT PANEL
+       ===================================================================== -->
+  <section class="input-panel">
+    <h2>Your decklist</h2>
+    <p class="helper">
+      One card per line. Common formats work: <code>1 Sol Ring</code>, <code>1x Sol Ring</code>, or just <code>Sol Ring</code>.
+      If your list doesn't have a commander marked, you'll be asked to pick one before analysis runs.
+    </p>
+    <textarea id="decklist-input" class="decklist" spellcheck="false" placeholder="// Commander
+1 Muddle, the Ever-Changing
+
+// Creatures
+1 Kitsa, Otterball Elite
+1 Alania, Divergent Storm
+...
+
+// Lands
+1 Command Tower
+..."></textarea>
+    <div class="action-row">
+      <button id="analyze-btn" class="btn btn-primary">Analyze Deck</button>
+      <span id="status" class="status"></span>
+      <button id="clear-btn" class="btn btn-secondary">Clear List</button>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       RESULTS (populated by JS after analysis)
+       ===================================================================== -->
+  <div id="results" class="results-wrap"></div>
+
+</main>
+
+<footer>
+  Built with care · Card data from <a href="https://scryfall.com" style="color:var(--teal)">Scryfall</a>
+</footer>
+
+<!-- =====================================================================
+     CARD DETAIL MODAL (populated dynamically when a card is clicked)
+     ===================================================================== -->
+<div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+  <div id="modal" class="modal">
+    <button id="modal-close" class="modal-close" aria-label="Close">×</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- Floating hover preview (single shared element, repositioned on mousemove) -->
+<div id="card-preview" class="card-preview" aria-hidden="true"></div>
+
+<script>
+/* =========================================================================
+   DECK BREWER'S BENCH — main script
+   -------------------------------------------------------------------------
+   Architecture overview:
+     1. parseDecklist(text)   → array of {count, name, isCommander}
+     2. fetchCards(entries)   → enriches each entry with Scryfall card data
+     3. analyzeDeck(deck)     → computes stats, color identity, types, curve
+     4. renderResults(report) → builds the DOM from the analysis
+
+   We keep these pieces *separate on purpose*: it makes each piece testable
+   and replaceable. If we later want to swap Scryfall for a different data
+   source, only fetchCards changes — parsing/analysis/rendering stay put.
+   ========================================================================= */
+
+// -------------------------------------------------------------------------
+// 1. DECKLIST PARSER
+// -------------------------------------------------------------------------
+// Takes a multi-line string and returns an array of card entries.
+// Handles common decklist export formats from Moxfield, Archidekt, etc.
+//
+// Recognized line patterns (in order of preference):
+//   "1 Sol Ring"
+//   "1x Sol Ring"
+//   "1 Sol Ring (LCI) 197"            ← set code + collector number, ignored
+//   "1 Sol Ring *CMDR*"               ← commander marker
+//   "SB: 1 Sol Ring"                  ← sideboard marker, treated as commander
+//                                       in EDH exports from some sites
+//   "Sol Ring"                        ← bare name, count defaults to 1
+//   "// Commander" or "// Lands"      ← section header. If a header contains
+//                                       "commander", the NEXT card line is
+//                                       flagged as the commander.
+//   blank lines are ignored.
+//
+function parseDecklist(text) {
+  const lines = text.split(/\r?\n/);
+  const entries = [];
+  let nextIsCommander = false;
+
+  // Regex breakdown:
+  //   ^\s*                  optional leading whitespace
+  //   (?:SB:\s*)?           optional "SB: " prefix (Moxfield sideboard syntax)
+  //   (\d+)x?\s+            count, with optional 'x' suffix
+  //   (.+?)                 card name (non-greedy so trailing tags can match)
+  //   (?:\s+\([A-Z0-9]{2,5}\)\s+\S+)?   optional " (SET) 123" suffix
+  //   (?:\s+\*CMDR\*)?      optional commander tag
+  //   \s*$                  trailing whitespace
+  const cardLine = /^\s*(?:SB:\s*)?(\d+)x?\s+(.+?)(?:\s+\([A-Z0-9]{2,5}\)\s+\S+)?(\s+\*CMDR\*)?\s*$/i;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Section header? Look for "commander" to know what's coming.
+    if (line.startsWith('//')) {
+      nextIsCommander = /commander/i.test(line);
+      continue;
+    }
+
+    let count, name, isCommander = false;
+    const m = line.match(cardLine);
+    if (m) {
+      count = parseInt(m[1], 10);
+      name = m[2].trim();
+      isCommander = !!m[3] || nextIsCommander;
+    } else {
+      // Bare name fallback — "Sol Ring" with no count
+      count = 1;
+      name = line;
+      isCommander = nextIsCommander;
+    }
+
+    // Once we use the "next is commander" flag, clear it so the rest of the
+    // section doesn't all get flagged.
+    if (nextIsCommander) nextIsCommander = false;
+
+    entries.push({ count, name, isCommander });
+  }
+
+  return entries;
+}
+
+// -------------------------------------------------------------------------
+// 2. SCRYFALL FETCHER
+// -------------------------------------------------------------------------
+// Two-phase fetch strategy:
+//
+//   Phase A — Exact batch lookup via POST /cards/collection
+//     Fast: up to 75 cards per request. Used for the bulk of the decklist.
+//     Requires EXACT name match. Double-faced cards stored with "//"
+//     separators won't match a front-face-only input here (e.g.
+//     "Frolicking Familiar" doesn't match "Frolicking Familiar // Blow
+//     Off Steam"). Anything it can't resolve lands in `not_found`.
+//
+//   Phase B — Fuzzy fallback via GET /cards/named?fuzzy=
+//     Slow: one request per card, but forgiving — handles front-face-only
+//     names, typos, missing apostrophes/accents, etc. We only hit it for
+//     cards Phase A couldn't resolve, so the cost is bounded by how messy
+//     the user's input is.
+//
+// Docs: https://scryfall.com/docs/api/cards/collection
+//       https://scryfall.com/docs/api/cards/named
+async function fetchCards(entries, onProgress) {
+  const CHUNK_SIZE = 75;
+  const REQUEST_DELAY_MS = 100;  // Scryfall asks tools to pace requests
+
+  // Build a lookup so we can re-attach results to entries by lowercased name.
+  const byName = new Map();
+  for (const e of entries) {
+    byName.set(e.name.toLowerCase(), e);
+  }
+
+  // ---------- Phase A: batch exact lookup ----------
+  if (onProgress) onProgress(`Fetching ${entries.length} cards from Scryfall (batch lookup)…`);
+
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    const chunk = entries.slice(i, i + CHUNK_SIZE);
+    const identifiers = chunk.map(e => ({ name: e.name }));
+
+    const resp = await fetch('https://api.scryfall.com/cards/collection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ identifiers })
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Scryfall returned ${resp.status} ${resp.statusText}`);
+    }
+
+    const data = await resp.json();
+
+    // Attach found cards. Scryfall returns the canonical name (with "//" for
+    // double-faced cards), which may differ from what the user typed, so we
+    // also match against the original chunk to be safe.
+    for (const card of (data.data || [])) {
+      // Try matching the full canonical name first…
+      let entry = byName.get(card.name.toLowerCase());
+      // …then fall back to matching the front face (everything before " // ")
+      if (!entry) {
+        const front = card.name.split(' // ')[0];
+        entry = byName.get(front.toLowerCase());
+      }
+      if (entry) entry.card = card;
+    }
+  }
+
+  // ---------- Phase B: fuzzy fallback for any leftovers ----------
+  const stillMissing = entries.filter(e => !e.card);
+
+  if (stillMissing.length) {
+    if (onProgress) onProgress(`Resolving ${stillMissing.length} ambiguous name${stillMissing.length === 1 ? '' : 's'} (fuzzy lookup)…`);
+
+    for (let i = 0; i < stillMissing.length; i++) {
+      const entry = stillMissing[i];
+      try {
+        const url = 'https://api.scryfall.com/cards/named?fuzzy=' + encodeURIComponent(entry.name);
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+
+        if (resp.ok) {
+          const card = await resp.json();
+          entry.card = card;
+          // If the resolved name differs from what the user typed, record it
+          // so the UI can show "we interpreted X as Y".
+          if (card.name.toLowerCase() !== entry.name.toLowerCase()) {
+            entry.fuzzyMatched = true;
+            entry.fuzzyFrom = entry.name;
+            entry.fuzzyTo = card.name;
+          }
+        } else {
+          // 404 = no match found, even fuzzily. Genuine typo.
+          entry.notFound = true;
+        }
+      } catch (err) {
+        entry.notFound = true;
+      }
+
+      // Pace fuzzy requests
+      if (i + 1 < stillMissing.length) {
+        await new Promise(r => setTimeout(r, REQUEST_DELAY_MS));
+      }
+    }
+  }
+
+  return entries;
+}
+
+// -------------------------------------------------------------------------
+// 2b. COMMANDER REFERENCE DATA
+// -------------------------------------------------------------------------
+// Embedded reference lists used for bracket detection. Update when WotC
+// changes the official Game Changers list.
+// Last verified: May 18, 2026 (B&R announcement confirmed no change to
+// the 53-card list from Feb 9, 2026).
+// Source: https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-february-9-2026
+
+const GAME_CHANGERS = new Set([
+  // White (7)
+  "drannith magistrate", "enlightened tutor", "farewell", "humility",
+  "serra's sanctum", "smothering tithe", "teferi's protection",
+  // Blue (10)
+  "consecrated sphinx", "cyclonic rift", "fierce guardianship", "force of will",
+  "gifts ungiven", "intuition", "mystical tutor", "narset, parter of veils",
+  "rhystic study", "thassa's oracle",
+  // Black (10)
+  "ad nauseam", "bolas's citadel", "braids, cabal minion", "demonic tutor",
+  "imperial seal", "necropotence", "opposition agent", "orcish bowmasters",
+  "tergrid, god of fright", "vampiric tutor",
+  // Red (3)
+  "gamble", "jeska's will", "underworld breach",
+  // Green (7)
+  "biorhythm", "crop rotation", "gaea's cradle", "natural order",
+  "seedborn muse", "survival of the fittest", "worldly tutor",
+  // Multicolored (4)
+  "aura shards", "coalition victory", "grand arbiter augustin iv", "notion thief",
+  // Colorless (12)
+  "ancient tomb", "chrome mox", "field of the dead", "glacial chasm",
+  "grim monolith", "lion's eye diamond", "mana vault", "mishra's workshop",
+  "mox diamond", "panoptic mirror", "the one ring", "the tabernacle at pendrell vale"
+]);
+
+// Fast mana NOT on the Game Changers list (the GC list already captures
+// Chrome Mox, Mox Diamond, Mana Vault, Grim Monolith, Ancient Tomb, LED).
+const FAST_MANA_NON_GC = new Set([
+  "sol ring", "mox opal", "mox amber", "mox tantalite", "lotus petal",
+  "dark ritual", "cabal ritual", "rite of flame",
+  "simian spirit guide", "elvish spirit guide", "tinder wall"
+]);
+
+// Common tutors NOT on the Game Changers list.
+const TUTORS_NON_GC = new Set([
+  "diabolic tutor", "diabolic intent", "beseech the queen", "beseech the mirror",
+  "grim tutor", "scheming symmetry", "wishclaw talisman",
+  "idyllic tutor", "academy rector",
+  "eldritch evolution", "birthing pod", "neoform",
+  "green sun's zenith", "chord of calling", "finale of devastation",
+  "time of need", "fauna shaman", "congregation at dawn",
+  "spellseeker", "muddle the mixture", "merchant scroll", "long-term plans",
+  "personal tutor"
+]);
+
+
+// -------------------------------------------------------------------------
+// 2b-ii. COMMANDER STAPLES
+// -------------------------------------------------------------------------
+// Cards that are correct includes in nearly every Commander deck regardless
+// of archetype. These are excluded from the off-theme "cut candidates" list
+// and surfaced in their own collapsible "Commander Staples" panel section.
+//
+// Intentionally excludes anything already in GAME_CHANGERS — those cards
+// are already highlighted in the Bracket panel, no need to surface twice.
+//
+// Categories:
+//   - Universal mana rocks (colorless)
+//   - Guild signets & talismans (all 10 pairs)
+//   - Green ramp spells & creatures
+//   - Universal interaction (removal, counterspells, board wipes)
+//   - Utility (card draw, protection, lands matter)
+
+const STAPLES = new Set([
+  // ── Universal mana rocks ──────────────────────────────────────────────
+  "sol ring", "arcane signet", "commander's sphere", "mind stone",
+  "thought vessel", "fellwar stone", "darksteel ingot", "worn powerstone",
+  "hedron archive", "wayfarer's bauble", "everflowing chalice",
+  "pristine talisman", "heraldic banner", "guardian idol",
+  "ornithopter of paradise", "coalition relic", "chromatic lantern",
+  "gilded lotus", "midnight clock", "sisay's ring", "ur-golem's eye",
+  "manascape refractor", "pillar of origins", "traveler's amulet",
+  "expedition map", "thran dynamo", "powerstone shard", "basalt monolith",
+  "vessel of endless rest", "orazca relic", "cryptic gateway",
+  "fire diamond", "sky diamond", "marble diamond", "moss diamond",
+  "charcoal diamond", "coldsteel heart", "star compass",
+
+  // ── Guild signets ─────────────────────────────────────────────────────
+  "azorius signet", "dimir signet", "rakdos signet", "gruul signet",
+  "selesnya signet", "orzhov signet", "izzet signet", "golgari signet",
+  "boros signet", "simic signet",
+
+  // ── Talismans ─────────────────────────────────────────────────────────
+  "talisman of progress", "talisman of dominance", "talisman of indulgence",
+  "talisman of impulse", "talisman of unity", "talisman of hierarchy",
+  "talisman of creativity", "talisman of resilience", "talisman of conviction",
+  "talisman of curiosity",
+
+  // ── Lockets & cluestones ─────────────────────────────────────────────
+  "dimir locket", "azorius locket", "rakdos locket", "gruul locket",
+  "selesnya locket", "orzhov locket", "izzet locket", "golgari locket",
+  "boros locket", "simic locket",
+
+  // ── Green ramp spells ─────────────────────────────────────────────────
+  "cultivate", "kodama's reach", "rampant growth", "farseek",
+  "nature's lore", "three visits", "skyshroud claim", "explosive vegetation",
+  "migration path", "circuitous route", "tempt with discovery",
+  "ranger's path", "nissa's pilgrimage", "sylvan scrying", "harrow",
+  "grow from the ashes", "roiling regrowth", "search for tomorrow",
+  "primal growth", "land grant", "life from the loam",
+  "spring // mind", "reap and sow", "spoils of victory",
+  "harvest season", "revel in riches",
+
+  // ── Green ramp creatures ──────────────────────────────────────────────
+  "solemn simulacrum", "wood elves", "farhaven elf", "springbloom druid",
+  "burnished hart", "tanuki transplanter", "yavimaya elder",
+  "selvala, heart of the wilds", "llanowar elves", "elvish mystic",
+  "fyndhorn elves", "arbor elf", "birds of paradise", "noble hierarch",
+  "avacyn's pilgrim", "boreal druid", "elvish rejuvenator",
+  "district guide", "diligent farmhand", "dawntreader elk",
+  "krosan tusker", "yavimaya granger", "borderland ranger",
+  "myriad landscape",
+
+  // ── Universal removal (single target) ────────────────────────────────
+  "swords to plowshares", "path to exile", "chaos warp", "generous gift",
+  "beast within", "anguished unmaking", "vindicate", "mortify",
+  "oblivion ring", "banishing light", "imprisoned in the moon",
+  "darksteel mutation", "reality shift", "pongify", "rapid hybridization",
+  "go for the throat", "doom blade", "murder", "terminate",
+  "assassin's trophy", "abrupt decay", "deadly rollick", "dismember",
+  "snuff out", "tragic slip", "ulcerate", "feed the swarm",
+  "baleful mastery", "void rend", "wear // tear",
+
+  // ── Counterspells ─────────────────────────────────────────────────────
+  "counterspell", "arcane denial", "swan song", "negate",
+  "dovin's veto", "delay", "dispel", "mystical dispute",
+  "counterflux", "render silent", "absorb", "rewind",
+  "deprive", "disallow", "void shatter", "voidslime",
+
+  // ── Board wipes ───────────────────────────────────────────────────────
+  "wrath of god", "day of judgment", "damnation", "toxic deluge",
+  "blasphemous act", "chain reaction", "anger of the gods",
+  "storm's wrath", "crux of fate", "bontu's last reckoning",
+  "yahenni's expertise", "languish", "decree of pain",
+  "extinction event", "aura shog", "kirtar's wrath",
+  "rout", "hallowed burial", "settle the wreckage",
+  "the wandering emperor",
+
+  // ── Utility: protection ───────────────────────────────────────────────
+  "lightning greaves", "swiftfoot boots", "darksteel plate",
+  "hammer of nazahn", "whispersilk cloak", "commander's plate",
+  "mask of avacyn", "cloak and dagger",
+
+  // ── Utility: card draw ────────────────────────────────────────────────
+  "phyrexian arena", "sylvan library", "mystic remora",
+  "night's whisper", "sign in blood", "read the bones",
+  "ambition's cost", "ancient craving", "painful truths",
+  "harmonize", "greater good", "guardian project",
+  "the great henge", "lifecrafter's bestiary", "elemental bond",
+  "garruk's uprising", "primordial sage", "soul of the harvest",
+  "zendikar resurgent", "shamanic revelation", "rishkar's expertise",
+  "urban evolution", "concentrate", "tidings", "pull from tomorrow",
+  "stroke of genius", "braingeyser", "opportunity",
+  "fact or fiction", "thirst for knowledge", "thought collapse",
+
+  // ── Utility: graveyard hate ───────────────────────────────────────────
+  "tormod's crypt", "relic of progenitus", "grafdigger's cage",
+  "rest in peace", "leyline of the void", "scavenging ooze",
+  "nihil spellbomb", "soul-guide lantern",
+
+  // ── Utility: lands ────────────────────────────────────────────────────
+  "command tower", "reliquary tower", "temple of the false god",
+  "exotic orchard", "myriad landscape", "opal palace",
+  "secluded courtyard", "reflecting pool", "city of brass",
+  "mana confluence", "unclaimed territory",
+]);
+
+// Filter out anything already in GAME_CHANGERS at call time so the two
+// lists stay independent and we never have to manually cross-check them.
+function findStaples(entries) {
+  return entries.filter(e =>
+    e.card &&
+    STAPLES.has(frontFaceName(e.card)) &&
+    !GAME_CHANGERS.has(frontFaceName(e.card))
+  );
+}
+
+// -------------------------------------------------------------------------
+// 2c. DECK CONTENT DETECTORS
+// -------------------------------------------------------------------------
+function lc(s) { return (s || '').toLowerCase(); }
+function frontFaceName(card) { return (card.name || '').split(' // ')[0].toLowerCase(); }
+
+function findGameChangers(entries) {
+  return entries.filter(e => e.card && GAME_CHANGERS.has(frontFaceName(e.card)));
+}
+function findFastMana(entries) {
+  return entries.filter(e => e.card && FAST_MANA_NON_GC.has(frontFaceName(e.card)));
+}
+function findTutors(entries) {
+  return entries.filter(e => {
+    if (!e.card) return false;
+    const name = frontFaceName(e.card);
+    return TUTORS_NON_GC.has(name) ||
+      (GAME_CHANGERS.has(name) && /tutor|search your library/i.test(e.card.oracle_text || ''));
+  });
+}
+function oracleMatches(card, regex) {
+  if (!card) return false;
+  if (card.oracle_text && regex.test(card.oracle_text)) return true;
+  if (card.card_faces) {
+    for (const f of card.card_faces) {
+      if (f.oracle_text && regex.test(f.oracle_text)) return true;
+    }
+  }
+  return false;
+}
+function findMassLandDestruction(entries) {
+  const MLD_NAMED = new Set([
+    "armageddon", "ravages of war", "catastrophe", "wildfire", "jokulhaups",
+    "devastation", "obliterate", "decree of annihilation", "worldslayer",
+    "cataclysm", "apocalypse"
+  ]);
+  const MLD_TEXT = /destroy all (non[a-z]+ )?lands|destroy each (non[a-z]+ )?land|exile each (non[a-z]+ )?land/i;
+  return entries.filter(e => {
+    if (!e.card) return false;
+    return MLD_NAMED.has(frontFaceName(e.card)) || oracleMatches(e.card, MLD_TEXT);
+  });
+}
+function findExtraTurns(entries) {
+  const ET_NAMED = new Set([
+    "time warp", "temporal manipulation", "walk the aeons", "capture of jingzhou",
+    "time stretch", "karn's temporal sundering", "alrund's epiphany",
+    "nexus of fate", "part the waterveil", "temporal mastery",
+    "expropriate", "beacon of tomorrows", "temporal trespass", "savor the moment"
+  ]);
+  const ET_TEXT = /take an extra turn|extra turn after this one/i;
+  return entries.filter(e => {
+    if (!e.card) return false;
+    return ET_NAMED.has(frontFaceName(e.card)) || oracleMatches(e.card, ET_TEXT);
+  });
+}
+
+// -------------------------------------------------------------------------
+// 2d. BRACKET DETECTION
+// -------------------------------------------------------------------------
+function detectBracket(entries) {
+  const gameChangers = findGameChangers(entries);
+  const fastMana = findFastMana(entries);
+  const tutors = findTutors(entries);
+  const mld = findMassLandDestruction(entries);
+  const extraTurns = findExtraTurns(entries);
+
+  const gcCount = gameChangers.length;
+  const fmCount = fastMana.length;
+  const tutCount = tutors.length;
+  const mldCount = mld.length;
+  const etCount = extraTurns.length;
+
+  let bracket;
+  const reasoning = [];
+
+  if (gcCount >= 10) {
+    bracket = 5;
+    reasoning.push(`${gcCount} Game Changers — cEDH-level density (10+).`);
+  } else if (gcCount >= 4) {
+    bracket = 4;
+    reasoning.push(`${gcCount} Game Changers — optimized power level (4-9).`);
+  } else if (gcCount >= 1) {
+    bracket = 3;
+    reasoning.push(`${gcCount} Game Changer${gcCount === 1 ? '' : 's'} — Bracket 3 minimum.`);
+  } else {
+    bracket = 2;
+    reasoning.push('No Game Changers — Bracket 2 (Core) baseline.');
+  }
+
+  if (mldCount > 0 && bracket < 3) {
+    bracket = 3;
+    reasoning.push(`Mass land destruction present — bumped to Bracket 3.`);
+  } else if (mldCount > 0) {
+    reasoning.push(`Mass land destruction present: ${mld.map(e => e.card.name).join(', ')}.`);
+  }
+
+  if (bracket === 3 && fmCount + tutCount >= 6) {
+    bracket = 4;
+    reasoning.push(`High fast-mana + tutor density (${fmCount} fast mana, ${tutCount} tutors) — bumped to Bracket 4.`);
+  }
+
+  if (etCount >= 3 && bracket < 4) {
+    bracket = 4;
+    reasoning.push(`${etCount} extra-turn effects — bumped to Bracket 4.`);
+  }
+
+  if (bracket === 2) {
+    reasoning.push('Bracket 1 (Exhibition) vs Bracket 2 (Core) is a judgment call — if your deck is heavily themed/jank, treat as Bracket 1.');
+  }
+
+  const labels = { 1: 'Exhibition', 2: 'Core', 3: 'Upgraded', 4: 'Optimized', 5: 'cEDH' };
+
+  return {
+    bracket,
+    label: labels[bracket],
+    reasoning,
+    signals: {
+      gameChangers, fastMana, tutors, massLandDestruction: mld, extraTurns,
+      counts: { gcCount, fmCount, tutCount, mldCount, etCount }
+    }
+  };
+}
+
+// -------------------------------------------------------------------------
+// 2e. COMMANDER FORMAT LEGALITY CHECK
+// -------------------------------------------------------------------------
+function checkLegality(entries, commander) {
+  const issues = [];
+
+  for (const e of entries) {
+    if (!e.card) continue;
+    const status = e.card.legalities && e.card.legalities.commander;
+    if (status === 'banned') {
+      issues.push(`⛔ <strong>${escapeHtml(e.card.name)}</strong> is banned in Commander.`);
+    } else if (status === 'not_legal') {
+      issues.push(`⚠️ <strong>${escapeHtml(e.card.name)}</strong> is not legal in Commander.`);
+    } else if (status === 'restricted') {
+      issues.push(`⚠️ <strong>${escapeHtml(e.card.name)}</strong> is restricted in Commander.`);
+    }
+  }
+
+  if (commander && commander.card) {
+    const commanderColors = new Set(commander.card.color_identity || []);
+    for (const e of entries) {
+      if (!e.card || e === commander) continue;
+      const cardColors = e.card.color_identity || [];
+      const outside = cardColors.filter(c => !commanderColors.has(c));
+      if (outside.length) {
+        issues.push(`🎨 <strong>${escapeHtml(e.card.name)}</strong> {${cardColors.join('')}} is outside commander's color identity {${[...commanderColors].join('') || 'C'}}.`);
+      }
+    }
+  }
+
+  const SINGLETON_EXEMPTIONS = new Set([
+    'plains', 'island', 'swamp', 'mountain', 'forest', 'wastes',
+    'snow-covered plains', 'snow-covered island', 'snow-covered swamp',
+    'snow-covered mountain', 'snow-covered forest',
+    'relentless rats', 'shadowborn apostle', 'rat colony', 'persistent petitioners',
+    "dragon's approach", 'seven dwarves', 'nazgûl', 'templar knight'
+  ]);
+  for (const e of entries) {
+    if (!e.card || e.count <= 1) continue;
+    if (!SINGLETON_EXEMPTIONS.has(frontFaceName(e.card))) {
+      issues.push(`🔢 <strong>${escapeHtml(e.card.name)}</strong> listed ${e.count}× — Commander is singleton.`);
+    }
+  }
+
+  const totalCards = entries.filter(e => e.card).reduce((s, e) => s + e.count, 0);
+  if (totalCards !== 100) {
+    issues.push(`📏 Deck has ${totalCards} cards — expected 100.`);
+  }
+
+  if (commander && commander.card) {
+    const type = (commander.card.type_line || '').toLowerCase();
+    const text = (commander.card.oracle_text || '').toLowerCase();
+    const isLegendaryCreature = /legendary/.test(type) && /creature/.test(type);
+    const canBeCommander = /can be your commander/.test(text);
+    if (!isLegendaryCreature && !canBeCommander) {
+      issues.push(`👑 <strong>${escapeHtml(commander.card.name)}</strong> isn't a legendary creature and lacks "can be your commander."`);
+    }
+  } else {
+    issues.push('👑 No commander designated. Add a <code>// Commander</code> header above your commander card.');
+  }
+
+  return { isLegal: issues.length === 0, issues };
+}
+
+// -------------------------------------------------------------------------
+// 2f. ARCHETYPE DETECTION
+// -------------------------------------------------------------------------
+// Reads the commander's oracle text for keyword signals, then scores each
+// nonland card in the deck against the same signal set.
+//
+// Each archetype has:
+//   cmdrSignals   — regex patterns against the COMMANDER's oracle text
+//   cardSignals   — regex / type tests run against EACH nonland card
+//
+// A card "supports" an archetype if it matches at least one cardSignal.
+// Fit % = (supporting card count) / (total nonland cards) * 100.
+//
+// Primary  = highest-scoring archetype.
+// Secondary = runner-up, shown ONLY if:
+//   (a) fit% >= 20%  AND
+//   (b) score >= 60% of the primary's score
+//   (c) it's meaningfully different from primary (different archetype)
+//
+// This goes in the analyzer stage so the renderer stays dumb.
+
+const ARCHETYPES = [
+  {
+    id: 'spellslinger',
+    label: 'Spellslinger',
+    emoji: '⚡',
+    cmdrSignals: [
+      /whenever you cast (an? )?(instant|sorcery)/i,
+      /copy (a |that |the )?(instant|sorcery|spell)/i,
+      /prowess/i,
+      /magecraft/i,
+    ],
+    cardSignals: [
+      // Card IS an instant or sorcery
+      (e) => /\b(Instant|Sorcery)\b/.test(e.card.type_line || ''),
+      // "Whenever you cast" triggers
+      (e) => oracleMatches(e.card, /whenever (you |a player )?cast/i),
+      // Spell copy effects
+      (e) => oracleMatches(e.card, /copy (a |that |target )?(instant|sorcery|spell)/i),
+      // Prowess / magecraft keyword
+      (e) => oracleMatches(e.card, /\b(prowess|magecraft)\b/i),
+      // "Storm" keyword (naturally spellslinger)
+      (e) => oracleMatches(e.card, /\bstorm\b/i),
+    ],
+  },
+  {
+    id: 'tokens',
+    label: 'Tokens',
+    emoji: '🪙',
+    cmdrSignals: [
+      /create (a |an |\d+ )?([\w\s\/]+)?token/i,
+      /populate/i,
+      /convoke/i,
+      /whenever a token/i,
+    ],
+    cardSignals: [
+      (e) => oracleMatches(e.card, /create (a |an |\d+ )?([\w\s]*)?token/i),
+      (e) => oracleMatches(e.card, /populate/i),
+      (e) => oracleMatches(e.card, /convoke/i),
+      (e) => oracleMatches(e.card, /whenever a token (enters|dies|attacks)/i),
+      // Anthems — care about having many creatures
+      (e) => oracleMatches(e.card, /other creatures you control get \+/i),
+    ],
+  },
+  {
+    id: 'aristocrats',
+    label: 'Aristocrats',
+    emoji: '💀',
+    cmdrSignals: [
+      /whenever (a |another )?(creature|permanent) (you control )?(dies|is put into)/i,
+      /sacrifice (a |another |a creature|a permanent)/i,
+      /whenever you sacrifice/i,
+    ],
+    cardSignals: [
+      // Sacrifice outlets (explicitly say "sacrifice a creature/permanent")
+      (e) => oracleMatches(e.card, /sacrifice (a |an |another )?(creature|permanent|artifact|token)/i),
+      // Death triggers
+      (e) => oracleMatches(e.card, /whenever (a |another )?(creature|permanent) (you control )?dies/i),
+      // "Exploit" / "Casualty" / "Devour" keywords
+      (e) => oracleMatches(e.card, /\b(exploit|casualty|devour|offering)\b/i),
+      // Undying / Persist / Afterlife — graveyard recursion that feeds sac loops
+      (e) => oracleMatches(e.card, /\b(undying|persist|afterlife)\b/i),
+    ],
+  },
+  {
+    id: 'voltron',
+    label: 'Voltron',
+    emoji: '⚔️',
+    cmdrSignals: [
+      /equipped creature/i,
+      /enchanted creature/i,
+      /attach/i,
+      /whenever equipped/i,
+      /commander/i,   // "whenever your commander deals combat damage"
+    ],
+    cardSignals: [
+      // IS an Equipment or Aura
+      (e) => /\bEquipment\b/.test(e.card.type_line || ''),
+      (e) => /\bAura\b/.test(e.card.type_line || ''),
+      // Equip keyword
+      (e) => oracleMatches(e.card, /\bequip\b/i),
+      // Reconfigure / Living weapon
+      (e) => oracleMatches(e.card, /\b(reconfigure|living weapon)\b/i),
+      // "Double strike", "trample", "shroud", "hexproof" auras/equipment synergy
+      (e) => oracleMatches(e.card, /enchanted creature (gains?|gets?)/i),
+      (e) => oracleMatches(e.card, /equipped creature (gains?|gets?)/i),
+    ],
+  },
+  {
+    id: 'counters',
+    label: '+1/+1 Counters',
+    emoji: '📈',
+    cmdrSignals: [
+      /\+1\/\+1 counter/i,
+      /put (a |\d+ )?(\+1\/\+1 counter)/i,
+      /proliferate/i,
+      /evolve/i,
+      /adapt/i,
+    ],
+    cardSignals: [
+      (e) => oracleMatches(e.card, /\+1\/\+1 counter/i),
+      (e) => oracleMatches(e.card, /proliferate/i),
+      (e) => oracleMatches(e.card, /\b(evolve|adapt|modular|reinforce|bolster|outlast)\b/i),
+      (e) => oracleMatches(e.card, /remove (a |\d+ )?\+1\/\+1 counter/i),
+    ],
+  },
+  {
+    id: 'reanimator',
+    label: 'Reanimator',
+    emoji: '💫',
+    cmdrSignals: [
+      /return (target |a )?(creature|card) (card )?from (your |a )?graveyard/i,
+      /graveyard (to the battlefield|into play)/i,
+      /reanimate/i,
+    ],
+    cardSignals: [
+      (e) => oracleMatches(e.card, /return (target |a |each )?(creature|card|permanent) (card )?from (your |a |their )?graveyard (to the battlefield|to play)/i),
+      (e) => oracleMatches(e.card, /\b(reanimate|unearth|encore|disturb|flashback|embalm|eternalize)\b/i),
+      // Self-mill / discard-to-graveyard enablers
+      (e) => oracleMatches(e.card, /mill (a |each player mills )?\d+/i),
+      (e) => oracleMatches(e.card, /\b(dredge|delve|threshold|undergrowth)\b/i),
+      // "Put from library/hand into graveyard"
+      (e) => oracleMatches(e.card, /discard (a |that )?(creature |instant |sorcery )?card.*graveyard/i),
+    ],
+  },
+  {
+    id: 'landfall',
+    label: 'Landfall',
+    emoji: '🌍',
+    cmdrSignals: [
+      /landfall/i,
+      /whenever a land enters/i,
+      /land (enters|came into play)/i,
+    ],
+    cardSignals: [
+      (e) => oracleMatches(e.card, /\blandfall\b/i),
+      (e) => oracleMatches(e.card, /whenever a land (enters|comes into play)/i),
+      // Fetch / land ramp that puts extra lands onto the battlefield
+      (e) => oracleMatches(e.card, /search (your library|your deck) for (a |up to \d+ )?(basic )?land/i),
+      (e) => oracleMatches(e.card, /put (a |that |up to \d+ )?(basic )?land (card )?from (your (hand|library)) onto the battlefield/i),
+      // "Play an additional land"
+      (e) => oracleMatches(e.card, /play (an additional|\d+ additional) land/i),
+    ],
+  },
+  {
+    id: 'stompy',
+    label: 'Stompy',
+    emoji: '🦕',
+    cmdrSignals: [
+      /\btrample\b/i,
+      /\bhaste\b/i,
+      /\bindestruct/i,
+      /whenever .{0,30} deals combat damage/i,
+    ],
+    cardSignals: [
+      // High-CMC creatures (6+) — the big beaters
+      (e) => /\bCreature\b/.test(e.card.type_line || '') && (e.card.cmc ?? 0) >= 6,
+      // Ramp spells
+      (e) => oracleMatches(e.card, /add ({\w}){2,}|add \d+ mana/i),
+      (e) => oracleMatches(e.card, /search (your library|your deck) for (a |up to \d+ )?(basic )?land.*put (it|them) (onto the battlefield|into your hand)/i),
+      // Haste / Trample granters
+      (e) => oracleMatches(e.card, /creatures? you control (gains?|have|get) (trample|haste)/i),
+      // "Doubling" effects (power doublers)
+      (e) => oracleMatches(e.card, /double (the |its )?power/i),
+    ],
+  },
+  {
+    id: 'grouphug',
+    label: 'Group Hug',
+    emoji: '🤗',
+    cmdrSignals: [
+      /each player (draws|may draw|gains)/i,
+      /target player (draws|may draw)/i,
+      /opponents? (draw|may draw|gain)/i,
+    ],
+    cardSignals: [
+      (e) => oracleMatches(e.card, /each player (draws|may draw|gains life|gets)/i),
+      (e) => oracleMatches(e.card, /opponents? (draw|may draw|gain \d+ life)/i),
+      (e) => oracleMatches(e.card, /\b(tempting offer|join forces)\b/i),
+      // "Upkeep" triggers that help all players
+      (e) => oracleMatches(e.card, /at the beginning of (each player'?s? )?upkeep.{0,60}(draw|add|create)/i),
+    ],
+  },
+];
+
+// Main archetype detection function — called from analyzeDeck.
+function detectArchetype(entries, commander) {
+  const nonlands = entries.filter(e => e.card && !/\bLand\b/.test(e.card.type_line || ''));
+  const total = nonlands.length;
+  if (total === 0) return null;
+
+  // Get commander's oracle text (both faces for MDFCs)
+  const cmdrOracle = !commander ? '' :
+    [commander.card.oracle_text,
+     ...(commander.card.card_faces || []).map(f => f.oracle_text)]
+    .filter(Boolean).join('\n');
+
+  const scores = [];
+  for (const arch of ARCHETYPES) {
+    // Commander relevance: how many cmdr signals fire?
+    const cmdrHits = arch.cmdrSignals.filter(rx => rx.test(cmdrOracle)).length;
+
+    // Deck support: count nonland cards with at least one card signal
+    const supporting = nonlands.filter(e =>
+      arch.cardSignals.some(sig => {
+        try { return sig(e); } catch { return false; }
+      })
+    );
+
+    const fitPct = Math.round((supporting.length / total) * 100);
+    scores.push({ arch, cmdrHits, supporting, fitPct });
+  }
+
+  // Sort: fit% is the primary signal — what the deck actually contains.
+  // Commander hits break ties between archetypes with equal fit%, then
+  // raw supporting count as a final tiebreak.
+  scores.sort((a, b) =>
+    b.fitPct   - a.fitPct   ||
+    b.cmdrHits - a.cmdrHits ||
+    b.supporting.length - a.supporting.length
+  );
+
+  const primary = scores[0];
+
+  // Secondary: runner-up must clear a meaningful absolute threshold (25% fit)
+  // AND be at least 60% as supported as the primary. This prevents a stray
+  // commander keyword from forcing a low-fit archetype onto the panel.
+  const secondaryCandidates = scores.slice(1).filter(s =>
+    s.fitPct >= 25 &&
+    s.supporting.length >= Math.ceil(primary.supporting.length * 0.60)
+  );
+  const secondary = secondaryCandidates.length > 0 ? secondaryCandidates[0] : null;
+
+  // Exclude staples and Game Changers from off-theme.
+  // Staples are format glue; Game Changers are already highlighted in the
+  // bracket panel — neither belongs in a cut candidates list.
+  const stapleEntries = findStaples(nonlands);
+  const stapleSet = new Set(stapleEntries);
+  const offTheme = nonlands.filter(e =>
+    !primary.supporting.includes(e) &&
+    !stapleSet.has(e) &&
+    !GAME_CHANGERS.has(frontFaceName(e.card))
+  );
+
+  return { primary, secondary, total, offTheme, staples: stapleEntries };
+}
+
+
+// -------------------------------------------------------------------------
+// 2g. COLOR THEMING ENGINE
+// -------------------------------------------------------------------------
+// Computes a color palette from the deck's color identity frequencies,
+// then smoothly transitions the UI's CSS custom properties to match.
+//
+// Strategy:
+//   - Count how many cards include each color in their color_identity.
+//     A {U}{R} card counts +1 toward both U and R.
+//   - Sort colors by frequency → primary (most cards), secondary, tertiary.
+//   - Map each MTG color to a full palette (bg, surface, border, accent, text).
+//   - Mono-color: use that color's deep palette for bg/surfaces, keep
+//     default teal/yellow accents so readability doesn't suffer.
+//   - Two+ colors: bg from primary color, accent from secondary,
+//     text highlights from tertiary (if present).
+//   - Colorless / no identity: reset to default palette.
+//
+// CSS custom properties don't interpolate on their own, so we use a
+// two-step fade: (1) body fades out slightly, (2) variables swap,
+// (3) body fades back in. The transition on body handles the visual ease.
+
+const COLOR_PALETTES = {
+  W: {
+    bg:         '#1e1a0f',
+    waterDeep:  '#2a2310',
+    waterMid:   '#3d3318',
+    waterLight: '#544820',
+    surface:    '#252015',
+    surface2:   '#2e2818',
+    border:     '#4a3d20',
+    accent:     '#d4a843',   // warm gold
+    accentDark: '#a07828',
+    yellow:     '#f0d060',
+    foam:       '#f0e8c8',
+    text:       '#f0e8c8',
+    textDim:    '#8a7a50',
+    radial1:    'rgba(212,168,67,0.08)',
+    radial2:    'rgba(240,232,200,0.04)',
+  },
+  U: {
+    bg:         '#050f1e',
+    waterDeep:  '#081828',
+    waterMid:   '#0c2840',
+    waterLight: '#103858',
+    surface:    '#081525',
+    surface2:   '#0c1e35',
+    border:     '#143060',
+    accent:     '#4a9fd4',   // bright blue
+    accentDark: '#2a6fa0',
+    yellow:     '#90d0f0',
+    foam:       '#b0d8f8',
+    text:       '#c8e4f8',
+    textDim:    '#4878a0',
+    radial1:    'rgba(74,159,212,0.08)',
+    radial2:    'rgba(176,216,248,0.04)',
+  },
+  B: {
+    bg:         '#0a080e',
+    waterDeep:  '#110e18',
+    waterMid:   '#1a1525',
+    waterLight: '#251d35',
+    surface:    '#0e0b16',
+    surface2:   '#150f20',
+    border:     '#2a1e40',
+    accent:     '#9d6fd4',   // purple
+    accentDark: '#6a3fa0',
+    yellow:     '#c8a8f0',
+    foam:       '#d0b8f8',
+    text:       '#d8c8f0',
+    textDim:    '#5a4878',
+    radial1:    'rgba(157,111,212,0.08)',
+    radial2:    'rgba(208,184,248,0.04)',
+  },
+  R: {
+    bg:         '#160808',
+    waterDeep:  '#200c0c',
+    waterMid:   '#331010',
+    waterLight: '#481515',
+    surface:    '#1a0a0a',
+    surface2:   '#220e0e',
+    border:     '#481818',
+    accent:     '#e06030',   // orange-red
+    accentDark: '#a83d18',
+    yellow:     '#f0a060',
+    foam:       '#f8c8a8',
+    text:       '#f8d8c8',
+    textDim:    '#805040',
+    radial1:    'rgba(224,96,48,0.08)',
+    radial2:    'rgba(248,200,168,0.04)',
+  },
+  G: {
+    bg:         '#080f08',
+    waterDeep:  '#0c180c',
+    waterMid:   '#122812',
+    waterLight: '#183818',
+    surface:    '#0a130a',
+    surface2:   '#0e1a0e',
+    border:     '#1a3820',
+    accent:     '#4ab870',   // bright green
+    accentDark: '#2a8848',
+    yellow:     '#a0e080',
+    foam:       '#b8f0b0',
+    text:       '#c8f0c0',
+    textDim:    '#407850',
+    radial1:    'rgba(74,184,112,0.08)',
+    radial2:    'rgba(184,240,176,0.04)',
+  },
+  C: {  // Colorless — use original default palette
+    bg:         '#0e1c2f',
+    waterDeep:  '#0a2540',
+    waterMid:   '#103a5e',
+    waterLight: '#1a5276',
+    surface:    '#0f2540',
+    surface2:   '#152e4d',
+    border:     '#1e4068',
+    accent:     '#2ec4b6',
+    accentDark: '#1a9d92',
+    yellow:     '#ffd166',
+    foam:       '#b8e0f7',
+    text:       '#d4eaf7',
+    textDim:    '#6a90b0',
+    radial1:    'rgba(46,196,182,0.06)',
+    radial2:    'rgba(255,123,41,0.05)',
+  },
+};
+
+// Compute per-color card counts from the deck entries.
+function computeColorFrequency(entries) {
+  const freq = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+  for (const e of entries) {
+    if (!e.card) continue;
+    for (const c of (e.card.color_identity || [])) {
+      if (c in freq) freq[c]++;
+    }
+  }
+  // Return colors sorted by frequency, most common first, zeros excluded.
+  return Object.entries(freq)
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([color]) => color);
+}
+
+// Build a merged palette from up to 3 colors.
+// - primary color drives bg, surface, border
+// - secondary color drives accent
+// - tertiary color drives yellow/foam highlights
+// - mono-color keeps default accent/text for readability
+function buildPalette(colorRanking) {
+  if (colorRanking.length === 0) return COLOR_PALETTES.C;
+
+  const primary   = COLOR_PALETTES[colorRanking[0]];
+  const secondary = colorRanking[1] ? COLOR_PALETTES[colorRanking[1]] : null;
+  const tertiary  = colorRanking[2] ? COLOR_PALETTES[colorRanking[2]] : null;
+
+  // Start from the primary palette
+  const p = { ...primary };
+
+  if (secondary) {
+    // Blend secondary color's accent into the primary's bg-focused palette
+    p.accent     = secondary.accent;
+    p.accentDark = secondary.accentDark;
+    p.foam       = secondary.foam;
+  }
+  if (tertiary) {
+    // Use tertiary for the yellow/highlight color
+    p.yellow = tertiary.accent;
+  }
+
+  return p;
+}
+
+// Apply a palette to the document's CSS custom properties with a fade.
+function applyTheme(palette) {
+  const root = document.documentElement;
+
+  // Step 1: fade page content down slightly
+  document.body.style.opacity = '0.85';
+
+  setTimeout(() => {
+    // Step 2: swap variables while page is dimmed
+    root.style.setProperty('--bg',          palette.bg);
+    root.style.setProperty('--water-deep',  palette.waterDeep);
+    root.style.setProperty('--water-mid',   palette.waterMid);
+    root.style.setProperty('--water-light', palette.waterLight);
+    root.style.setProperty('--surface',     palette.surface);
+    root.style.setProperty('--surface2',    palette.surface2);
+    root.style.setProperty('--border',      palette.border);
+    root.style.setProperty('--teal',        palette.accent);
+    root.style.setProperty('--yellow',      palette.yellow);
+    root.style.setProperty('--foam',        palette.foam);
+    root.style.setProperty('--text',        palette.text);
+    root.style.setProperty('--text-dim',    palette.textDim);
+
+    // Step 3: fade back up
+    document.body.style.opacity = '1';
+  }, 200);
+}
+
+// Reset to the default (colorless) palette.
+function resetTheme() {
+  applyTheme(COLOR_PALETTES.C);
+}
+
+// -------------------------------------------------------------------------
+// 3. ANALYZER
+// -------------------------------------------------------------------------
+// Given enriched entries (each with a .card), compute summary statistics
+// and structural facts about the deck.
+function analyzeDeck(entries) {
+  const found = entries.filter(e => e.card);
+  const missing = entries.filter(e => !e.card);
+
+  const commander = found.find(e => e.isCommander) || null;
+
+  // Count cards by primary type. Scryfall's type_line looks like
+  // "Legendary Creature — Otter Wizard". We split on "—" and take the
+  // first part, then look for the most specific type word.
+  const TYPE_ORDER = ['Creature', 'Planeswalker', 'Battle', 'Instant', 'Sorcery',
+                      'Artifact', 'Enchantment', 'Land'];
+  function primaryType(card) {
+    if (!card || !card.type_line) return 'Unknown';
+    const front = card.type_line.split('//')[0];   // ignore DFC back face
+    const main = front.split('—')[0];
+    for (const t of TYPE_ORDER) {
+      if (main.includes(t)) return t;
+    }
+    return 'Other';
+  }
+
+  const byType = {};
+  for (const t of TYPE_ORDER) byType[t] = [];
+  byType['Other'] = [];
+
+  for (const e of found) {
+    const t = primaryType(e.card);
+    (byType[t] || byType['Other']).push(e);
+  }
+
+  // Color identity: union of every card's color_identity (excluding lands? No —
+  // EDH color identity includes lands. Lands count.). Commander's color
+  // identity is what *legally* constrains the deck, but we report the union
+  // we actually see.
+  const colorIdSet = new Set();
+  for (const e of found) {
+    for (const c of (e.card.color_identity || [])) colorIdSet.add(c);
+  }
+  const colorIdentity = ['W', 'U', 'B', 'R', 'G'].filter(c => colorIdSet.has(c));
+
+  // Mana curve: counts of nonland cards by integer mana value (0..7+)
+  const curve = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, '7+': 0 };
+  for (const e of found) {
+    if (primaryType(e.card) === 'Land') continue;
+    const mv = Math.floor(e.card.cmc ?? 0);
+    if (mv >= 7) curve['7+'] += e.count;
+    else curve[mv] += e.count;
+  }
+
+  // Total cards (accounting for the count of each entry)
+  const totalCards = found.reduce((sum, e) => sum + e.count, 0);
+  const landCount = byType['Land'].reduce((sum, e) => sum + e.count, 0);
+  const nonlandAvgMv = (function () {
+    const nonland = found.filter(e => primaryType(e.card) !== 'Land');
+    const totalMv = nonland.reduce((s, e) => s + (e.card.cmc ?? 0) * e.count, 0);
+    const totalN = nonland.reduce((s, e) => s + e.count, 0);
+    return totalN ? totalMv / totalN : 0;
+  })();
+
+  // Cards that were resolved via the fuzzy fallback (name differs from input)
+  const fuzzyResolved = found.filter(e => e.fuzzyMatched);
+
+  // ----- Phase 2 additions: bracket + legality -----
+  const bracketResult = detectBracket(found);
+  const archetypeResult = detectArchetype(found, commander);
+  const legalityResult = checkLegality(found, commander);
+
+  return {
+    entries: found,
+    missing,
+    fuzzyResolved,
+    commander,
+    byType,
+    colorIdentity,
+    curve,
+    totalCards,
+    landCount,
+    nonlandAvgMv,
+    bracket: bracketResult,
+    archetype: archetypeResult,
+    legality: legalityResult,
+    colorFrequency: computeColorFrequency(found),
+    primaryType  // expose so the renderer can categorize cards the same way
+  };
+}
+
+// -------------------------------------------------------------------------
+// 4. RENDERER
+// -------------------------------------------------------------------------
+// Builds the results DOM from the analysis report.
+function renderResults(report) {
+  const root = document.getElementById('results');
+  root.innerHTML = '';   // clear previous run
+
+  // ----- Commander banner -----
+  if (report.commander) {
+    const c = report.commander.card;
+    const banner = el('div', 'section');
+    banner.innerHTML = `
+      <div class="section-head">
+        <div class="section-emoji">👑</div>
+        <div>
+          <div class="section-title">Commander: <span id="cmdr-name-link" style="cursor:pointer; border-bottom: 1px dashed currentColor;">${escapeHtml(c.name)}</span></div>
+          <div class="section-sub">${escapeHtml(c.type_line || '')} &nbsp;·&nbsp; <span style="font-style:normal;">click or hover to preview</span></div>
+        </div>
+      </div>
+      <div class="color-pips">
+        ${(c.color_identity || ['C']).map(col => `<div class="pip pip-${col}">${col}</div>`).join('') || '<div class="pip pip-C">C</div>'}
+      </div>
+    `;
+    // Wire the commander name up exactly like a card tile
+    const cmdrLink = banner.querySelector('#cmdr-name-link');
+    cmdrLink.addEventListener('click', () => openCardModal(c));
+    cmdrLink.addEventListener('mouseenter', (e) => showPreview(c, e.clientX, e.clientY));
+    cmdrLink.addEventListener('mousemove', (e) => positionPreview(e.clientX, e.clientY));
+    cmdrLink.addEventListener('mouseleave', hidePreview);
+    root.appendChild(banner);
+  }
+
+  // ----- Bracket badge + reasoning -----
+  if (report.bracket) {
+    const b = report.bracket;
+    const panel = el('div', 'bracket-panel');
+    const gcList = b.signals.gameChangers;
+    panel.innerHTML = `
+      <div class="bracket-badge bracket-${b.bracket}">
+        <div class="num">${b.bracket}</div>
+        <div class="lbl">${escapeHtml(b.label)}</div>
+      </div>
+      <div class="bracket-text">
+        <div class="bracket-headline">Bracket ${b.bracket} — ${escapeHtml(b.label)}</div>
+        <ul class="bracket-reasoning">
+          ${b.reasoning.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+        </ul>
+        ${gcList.length ? `
+          <div style="margin-top: 14px; font-size: 12px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase;">Game Changers in deck (${gcList.length})</div>
+          <div class="gc-list"></div>
+        ` : ''}
+      </div>
+    `;
+    root.appendChild(panel);
+    if (gcList.length) {
+      const chipContainer = panel.querySelector('.gc-list');
+      for (const entry of gcList) {
+        const chip = el('span', 'gc-chip');
+        chip.textContent = entry.card.name;
+        chip.addEventListener('click', () => openCardModal(entry.card));
+        chip.addEventListener('mouseenter', (e) => showPreview(entry.card, e.clientX, e.clientY));
+        chip.addEventListener('mousemove', (e) => positionPreview(e.clientX, e.clientY));
+        chip.addEventListener('mouseleave', hidePreview);
+        chipContainer.appendChild(chip);
+      }
+    }
+  }
+
+  // ----- Archetype panel -----
+  if (report.archetype) {
+    const at = report.archetype;
+    const panel = el('div', 'archetype-panel');
+
+    function archetypeRowHtml(scoreObj, isPrimary) {
+      const pctClass = isPrimary ? 'pct' : 'pct pct-secondary';
+      const fillClass = isPrimary ? 'archetype-bar-fill' : 'archetype-bar-fill secondary';
+      const tag = isPrimary ? '' : `<div class="archetype-secondary-label">Secondary theme</div>`;
+      return `
+        ${tag}
+        <div class="archetype-row">
+          <div class="archetype-emoji">${scoreObj.arch.emoji}</div>
+          <div class="archetype-label-block">
+            <div class="archetype-name">${escapeHtml(scoreObj.arch.label)}</div>
+            <div class="archetype-note">${scoreObj.supporting.length} of ${at.total} nonland cards support this theme</div>
+          </div>
+          <div class="archetype-bar-block">
+            <div class="archetype-bar-label">
+              <span style="color:var(--text-dim);">Deck fit</span>
+              <span class="${pctClass}">${scoreObj.fitPct}%</span>
+            </div>
+            <div class="archetype-bar-track">
+              <div class="${fillClass}" style="width:${scoreObj.fitPct}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const supportingCount = at.primary.supporting.length;
+    const offThemeCount   = at.offTheme.length;
+    const staplesCount    = at.staples ? at.staples.length : 0;
+
+    panel.innerHTML = `
+      <div class="archetype-headline">🎯 Deck Archetype</div>
+      ${archetypeRowHtml(at.primary, true)}
+      ${at.secondary ? `<div class="archetype-divider" style="margin:14px 0"></div>${archetypeRowHtml(at.secondary, false)}` : ''}
+      <div class="archetype-toggle-row">
+        ${supportingCount ? `<button class="archetype-toggle-btn" id="btn-supporting" aria-expanded="false">
+          ✅ ${supportingCount} supporting cards <span class="arrow">▾</span>
+        </button>` : ''}
+        ${staplesCount ? `<button class="archetype-toggle-btn" id="btn-staples" aria-expanded="false">
+          🏛️ ${staplesCount} commander staples <span class="arrow">▾</span>
+        </button>` : ''}
+        ${offThemeCount ? `<button class="archetype-toggle-btn" id="btn-offtheme" aria-expanded="false">
+          ✂️ ${offThemeCount} off-theme cards <span class="arrow">▾</span>
+        </button>` : ''}
+      </div>
+      <div class="archetype-expandable" id="expand-supporting">
+        <div class="expand-section-label">Supporting cards</div>
+        <div class="archetype-chip-list" id="chips-supporting"></div>
+      </div>
+      <div class="archetype-expandable" id="expand-staples">
+        <div class="expand-section-label">Commander Staples — format glue, not cut candidates</div>
+        <div class="archetype-chip-list" id="chips-staples"></div>
+      </div>
+      <div class="archetype-expandable" id="expand-offtheme">
+        <div class="expand-section-label">Off-theme — cut candidates</div>
+        <div class="archetype-chip-list" id="chips-offtheme"></div>
+      </div>
+    `;
+
+    // Wire up toggle buttons
+    function wireToggle(btnId, expandId, activeClass) {
+      const btn = panel.querySelector('#' + btnId);
+      const exp = panel.querySelector('#' + expandId);
+      if (!btn || !exp) return;
+      btn.addEventListener('click', () => {
+        const isOpen = exp.classList.contains('open');
+        exp.classList.toggle('open', !isOpen);
+        btn.classList.toggle('open', !isOpen);
+        btn.classList.toggle(activeClass, !isOpen);
+        btn.setAttribute('aria-expanded', String(!isOpen));
+      });
+    }
+    wireToggle('btn-supporting', 'expand-supporting', 'active');
+    wireToggle('btn-staples',    'expand-staples',    'active-gold');
+    wireToggle('btn-offtheme',   'expand-offtheme',   'active-red');
+
+    // Populate supporting chips
+    const supportingContainer = panel.querySelector('#chips-supporting');
+    if (supportingContainer) {
+      for (const entry of at.primary.supporting) {
+        const chip = el('span', 'supporting-chip');
+        chip.textContent = entry.card.name;
+        chip.addEventListener('click', () => openCardModal(entry.card));
+        chip.addEventListener('mouseenter', (e) => showPreview(entry.card, e.clientX, e.clientY));
+        chip.addEventListener('mousemove', (e) => positionPreview(e.clientX, e.clientY));
+        chip.addEventListener('mouseleave', hidePreview);
+        supportingContainer.appendChild(chip);
+      }
+    }
+
+    // Populate staples chips
+    const staplesContainer = panel.querySelector('#chips-staples');
+    if (staplesContainer && at.staples) {
+      for (const entry of at.staples) {
+        const chip = el('span', 'staple-chip');
+        chip.textContent = entry.card.name;
+        chip.addEventListener('click', () => openCardModal(entry.card));
+        chip.addEventListener('mouseenter', (e) => showPreview(entry.card, e.clientX, e.clientY));
+        chip.addEventListener('mousemove', (e) => positionPreview(e.clientX, e.clientY));
+        chip.addEventListener('mouseleave', hidePreview);
+        staplesContainer.appendChild(chip);
+      }
+    }
+
+    // Populate off-theme chips
+    const offThemeContainer = panel.querySelector('#chips-offtheme');
+    if (offThemeContainer) {
+      for (const entry of at.offTheme) {
+        const chip = el('span', 'offtheme-chip');
+        chip.textContent = entry.card.name;
+        chip.addEventListener('click', () => openCardModal(entry.card));
+        chip.addEventListener('mouseenter', (e) => showPreview(entry.card, e.clientX, e.clientY));
+        chip.addEventListener('mousemove', (e) => positionPreview(e.clientX, e.clientY));
+        chip.addEventListener('mouseleave', hidePreview);
+        offThemeContainer.appendChild(chip);
+      }
+    }
+
+    root.appendChild(panel);
+  }
+
+  // ----- Optimizer panel (immediately after archetype) -----
+  {
+    const optimizerPanel = el('div', 'optimizer-panel');
+    const detectedBracket = report.bracket ? report.bracket.bracket : 3;
+    const bracketOptions = [1,2,3,4,5].map(n => {
+      const labels = {1:'Exhibition',2:'Core',3:'Upgraded',4:'Optimized',5:'cEDH'};
+      const sel = n === detectedBracket ? ' selected' : '';
+      return '<option value="' + n + '"' + sel + '>' + n + ' — ' + labels[n] + '</option>';
+    }).join('');
+    optimizerPanel.innerHTML = `
+      <div class="optimizer-headline">&#x1F527; Optimize My Deck</div>
+      <div class="optimizer-sub">Set a target bracket and optional budget, then get ranked cut and add suggestions.</div>
+      <div class="optimizer-controls">
+        <div class="optimizer-field">
+          <label>Target Bracket</label>
+          <select class="optimizer-select" id="opt-bracket">${bracketOptions}</select>
+        </div>
+        <div class="optimizer-field">
+          <label>Max Card Price (USD)</label>
+          <div style="display:flex;align-items:center;background:var(--water-deep);border:1px solid var(--border);border-radius:8px;overflow:hidden;" id="budget-wrap">
+            <span style="padding:9px 10px 9px 12px;color:var(--text-dim);font-size:14px;user-select:none;">$</span>
+            <input type="number" class="optimizer-input" id="opt-budget" placeholder="No limit" min="0" step="0.5" style="border:none;border-radius:0;background:transparent;padding-left:0;min-width:100px;" onfocus="document.getElementById('budget-wrap').style.borderColor='var(--teal)'" onblur="document.getElementById('budget-wrap').style.borderColor='var(--border)'">
+          </div>
+        </div>
+        <button class="btn-optimizer" id="opt-btn">Optimize My Deck</button>
+      </div>
+      <div class="optimizer-status" id="opt-status"></div>
+      <div class="optimizer-results" id="opt-results"></div>
+    `;
+    root.appendChild(optimizerPanel);
+    optimizerPanel.querySelector('#opt-btn').addEventListener('click', () => runOptimizer(report));
+  }
+
+  // ----- Legality status -----
+  if (report.legality) {
+    const lg = report.legality;
+    const panel = el('div', 'legality-panel ' + (lg.isLegal ? 'legal' : 'illegal'));
+    if (lg.isLegal) {
+      panel.innerHTML = `
+        <div class="legality-headline">✅ Commander Format Legal</div>
+        <div style="color: var(--text-dim); font-size: 13px;">All cards legal, color identity respected, singleton rule observed, deck size correct.</div>
+      `;
+    } else {
+      panel.innerHTML = `
+        <div class="legality-headline">⚠️ ${lg.issues.length} Legality Issue${lg.issues.length === 1 ? '' : 's'}</div>
+        <ul class="legality-issues">
+          ${lg.issues.map(i => `<li>${i}</li>`).join('')}
+        </ul>
+      `;
+    }
+    root.appendChild(panel);
+  }
+
+  // ----- Stat tiles -----
+  const stats = el('div', 'stats');
+  stats.appendChild(statTile(report.totalCards, 'Total Cards', tierColor(report.totalCards, [99, 100], [98, 101])));
+  stats.appendChild(statTile(report.landCount, 'Lands', tierColor(report.landCount, [36, 38], [33, 40])));
+  stats.appendChild(statTile(report.byType['Creature'].reduce((s, e) => s + e.count, 0), 'Creatures'));
+  stats.appendChild(statTile(report.byType['Instant'].reduce((s, e) => s + e.count, 0)
+                            + report.byType['Sorcery'].reduce((s, e) => s + e.count, 0), 'Inst + Sorc'));
+  stats.appendChild(statTile(report.byType['Artifact'].reduce((s, e) => s + e.count, 0), 'Artifacts'));
+  stats.appendChild(statTile(report.byType['Enchantment'].reduce((s, e) => s + e.count, 0), 'Enchantments'));
+  stats.appendChild(statTile(report.nonlandAvgMv.toFixed(2), 'Avg MV', tierColor(report.nonlandAvgMv, [2.5, 3.5], [2.0, 4.2], true)));
+  root.appendChild(stats);
+
+  // ----- Mana curve -----
+  const curveSection = el('div', 'section');
+  curveSection.innerHTML = `
+    <div class="section-head">
+      <div class="section-emoji">📊</div>
+      <div>
+        <div class="section-title">Mana Curve</div>
+        <div class="section-sub">Nonland cards by mana value</div>
+      </div>
+    </div>
+  `;
+  const curveGrid = el('div', 'stats');
+  for (const mv of ['0', '1', '2', '3', '4', '5', '6', '7+']) {
+    curveGrid.appendChild(statTile(report.curve[mv], `MV ${mv}`));
+  }
+  curveSection.appendChild(curveGrid);
+  root.appendChild(curveSection);
+
+  // ----- Card roster grouped by type -----
+  const rosterSection = el('div', 'section');
+  rosterSection.innerHTML = `
+    <div class="section-head">
+      <div class="section-emoji">🗂️</div>
+      <div>
+        <div class="section-title">Card Roster</div>
+        <div class="section-sub">Every card in the deck, grouped by type</div>
+      </div>
+    </div>
+  `;
+  const TYPE_DISPLAY = [
+    ['Creature', 'Creatures'],
+    ['Planeswalker', 'Planeswalkers'],
+    ['Battle', 'Battles'],
+    ['Instant', 'Instants'],
+    ['Sorcery', 'Sorceries'],
+    ['Artifact', 'Artifacts'],
+    ['Enchantment', 'Enchantments'],
+    ['Land', 'Lands'],
+    ['Other', 'Other']
+  ];
+  for (const [key, label] of TYPE_DISPLAY) {
+    const group = report.byType[key];
+    if (!group || group.length === 0) continue;
+    const total = group.reduce((s, e) => s + e.count, 0);
+    const cat = el('div', 'cat-label');
+    cat.textContent = `${label} — ${total}`;
+    rosterSection.appendChild(cat);
+    const grid = el('div', 'card-grid');
+    // Sort alphabetically by name for easy scanning
+    const sorted = [...group].sort((a, b) =>
+      a.card.name.localeCompare(b.card.name)
+    );
+    for (const entry of sorted) grid.appendChild(cardTile(entry));
+    rosterSection.appendChild(grid);
+  }
+  root.appendChild(rosterSection);
+
+  // ----- Fuzzy resolution notice (resolved cards whose name we corrected) -----
+  if (report.fuzzyResolved.length) {
+    const note = el('div', 'section');
+    note.innerHTML = `
+      <div class="section-head">
+        <div class="section-emoji">🔎</div>
+        <div>
+          <div class="section-title">Auto-Corrected ${report.fuzzyResolved.length} Name${report.fuzzyResolved.length === 1 ? '' : 's'}</div>
+          <div class="section-sub">Double-faced/Adventure cards or near-typo matches. Check these picked the right card.</div>
+        </div>
+      </div>
+      <ul style="list-style: none; padding: 0;">
+        ${report.fuzzyResolved.map(e => `
+          <li style="background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--yellow); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px;">
+            <span style="color: var(--text-dim);">${escapeHtml(e.fuzzyFrom)}</span>
+            <span style="color: var(--text-dim); margin: 0 8px;">→</span>
+            <span style="color: var(--foam); font-weight: 600;">${escapeHtml(e.fuzzyTo)}</span>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    root.appendChild(note);
+  }
+
+  // ----- Missing cards warning -----
+  if (report.missing.length) {
+    const warn = el('div', 'section');
+    warn.innerHTML = `
+      <div class="section-head">
+        <div class="section-emoji">⚠️</div>
+        <div>
+          <div class="section-title">Couldn't Find ${report.missing.length} Card${report.missing.length === 1 ? '' : 's'}</div>
+          <div class="section-sub">Check spelling — Scryfall didn't recognize these names</div>
+        </div>
+      </div>
+      <ul style="padding-left: 20px; color: var(--coral);">
+        ${report.missing.map(m => `<li>${escapeHtml(m.name)}</li>`).join('')}
+      </ul>
+    `;
+    root.appendChild(warn);
+  }
+
+  // Show the results
+  root.classList.add('visible');
+}
+
+// ----- Render helpers -----
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+function statTile(val, label, valClass = '') {
+  const tile = el('div', 'stat');
+  tile.innerHTML = `<div class="val ${valClass}">${val}</div><div class="lbl">${label}</div>`;
+  return tile;
+}
+
+function cardTile(entry) {
+  const c = entry.card;
+  const tile = el('div', 'card-tile');
+  // For double-faced cards the parent mana_cost is often blank — fall back to
+  // the front face's cost so the tile still shows something useful.
+  const rawCost = c.mana_cost || (c.card_faces?.[0]?.mana_cost) || '';
+  const mana = rawCost.replace(/[{}]/g, '');
+  tile.innerHTML = `
+    <div class="name">${entry.count > 1 ? entry.count + 'x ' : ''}${escapeHtml(c.name)}</div>
+    <div class="meta">${escapeHtml(c.type_line || '')} ${mana ? `· <span class="mv">${escapeHtml(mana)}</span>` : ''}</div>
+  `;
+  // Wire up click → modal, hover → preview. We attach the card data via
+  // closure rather than data attributes for simplicity.
+  tile.addEventListener('click', () => openCardModal(c));
+  tile.addEventListener('mouseenter', (e) => showPreview(c, e.clientX, e.clientY));
+  tile.addEventListener('mousemove', (e) => positionPreview(e.clientX, e.clientY));
+  tile.addEventListener('mouseleave', hidePreview);
+  return tile;
+}
+
+// -------------------------------------------------------------------------
+// CARD DETAIL HELPERS
+// -------------------------------------------------------------------------
+// Scryfall stores image URLs in different places depending on the card layout:
+//   - Single-faced cards:        card.image_uris.normal
+//   - Transform / MDFC:          card.card_faces[i].image_uris.normal
+//                                (each face has its own image)
+//   - Adventure / Split / Flip:  card.image_uris.normal
+//                                (both faces share one image)
+// These helpers paper over that mess so the rest of the code can stay simple.
+
+function getCardImageUrl(card, size = 'normal') {
+  if (card.image_uris) return card.image_uris[size];
+  if (card.card_faces?.[0]?.image_uris) return card.card_faces[0].image_uris[size];
+  return null;
+}
+
+// Returns a normalized array of face objects with everything the modal needs.
+// For single-face cards this is a 1-element array.
+function getCardFaces(card) {
+  // Faces with their own image (Transform, MDFC)
+  if (card.card_faces?.length && card.card_faces[0].image_uris) {
+    return card.card_faces.map(f => ({
+      name: f.name,
+      mana_cost: f.mana_cost,
+      type_line: f.type_line,
+      oracle_text: f.oracle_text,
+      flavor_text: f.flavor_text,
+      power: f.power,
+      toughness: f.toughness,
+      loyalty: f.loyalty,
+      image_uri: f.image_uris.normal,
+      hasOwnImage: true
+    }));
+  }
+  // Faces that share a single image (Adventure, Split)
+  if (card.card_faces?.length) {
+    return card.card_faces.map((f, i) => ({
+      name: f.name,
+      mana_cost: f.mana_cost,
+      type_line: f.type_line,
+      oracle_text: f.oracle_text,
+      flavor_text: f.flavor_text,
+      power: f.power,
+      toughness: f.toughness,
+      loyalty: f.loyalty,
+      image_uri: i === 0 ? card.image_uris?.normal : null,
+      hasOwnImage: false
+    }));
+  }
+  // Single-face card
+  return [{
+    name: card.name,
+    mana_cost: card.mana_cost,
+    type_line: card.type_line,
+    oracle_text: card.oracle_text,
+    flavor_text: card.flavor_text,
+    power: card.power,
+    toughness: card.toughness,
+    loyalty: card.loyalty,
+    image_uri: card.image_uris?.normal,
+    hasOwnImage: true
+  }];
+}
+
+function buildModalContent(card) {
+  const faces = getCardFaces(card);
+
+  // Image column: one image for shared-image cards, multiple for transform-style
+  const imageHtml = faces
+    .filter(f => f.image_uri)
+    .map(f => `<img src="${escapeHtml(f.image_uri)}" alt="${escapeHtml(f.name)}" loading="lazy">`)
+    .join('');
+
+  // Text column: a block per face
+  const facesHtml = faces.map(face => {
+    const stats = face.power != null
+      ? `<div class="face-pt">${escapeHtml(face.power)} / ${escapeHtml(face.toughness)}</div>`
+      : face.loyalty != null
+        ? `<div class="face-pt">Loyalty: ${escapeHtml(face.loyalty)}</div>`
+        : '';
+    const cost = face.mana_cost
+      ? `<span class="face-cost">${escapeHtml(face.mana_cost.replace(/[{}]/g, ''))}</span>`
+      : '';
+    return `
+      <div class="modal-face">
+        <div class="face-name">${escapeHtml(face.name)}${cost}</div>
+        <div class="face-type">${escapeHtml(face.type_line || '')}</div>
+        <div class="face-oracle">${escapeHtml(face.oracle_text || '')}</div>
+        ${face.flavor_text ? `<div class="face-flavor">${escapeHtml(face.flavor_text)}</div>` : ''}
+        ${stats}
+      </div>
+    `;
+  }).join('');
+
+  const setInfo = [card.set_name, card.collector_number ? '#' + card.collector_number : '', card.rarity]
+    .filter(Boolean).join(' · ');
+
+  return `
+    <div class="modal-body">
+      <div class="modal-image-col">${imageHtml || '<div style="color:var(--text-dim);font-style:italic;">No image available</div>'}</div>
+      <div class="modal-text-col">
+        ${facesHtml}
+        <div class="modal-meta">
+          <span>${escapeHtml(setInfo)}</span>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+            ${card.scryfall_uri ? `<a href="${escapeHtml(card.scryfall_uri)}" target="_blank" rel="noopener">View on Scryfall ↗</a>` : ''}
+            ${card.purchase_uris && card.purchase_uris.tcgplayer ? `<a href="${escapeHtml(card.purchase_uris.tcgplayer)}" target="_blank" rel="noopener" style="color:var(--teal);">Buy on TCGPlayer ↗</a>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Assigns a color class based on whether a value falls in good/ok/bad bands.
+// `great` = inside the inner band, `ok` = inside the outer band, otherwise low/high.
+// `invert=true` means "lower is better" (used for avg MV).
+function tierColor(val, greatBand, okBand, invert = false) {
+  if (val >= greatBand[0] && val <= greatBand[1]) return 'v-great';
+  if (val >= okBand[0] && val <= okBand[1]) return 'v-ok';
+  return invert
+    ? (val < okBand[0] ? 'v-great' : 'v-low')
+    : 'v-low';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+
+// -------------------------------------------------------------------------
+// 2b-iii. HIGH IMPACT CARDS
+// -------------------------------------------------------------------------
+// Cards widely considered near-Game-Changer level by the community but not
+// on WotC's official 53-card list. Used by the optimizer as Tier 2 adds.
+
+const HIGH_IMPACT = new Set([
+  "deflecting swat", "flawless maneuver", "deadly rollick",
+  "obscuring haze", "return of the wildspeaker",
+  "dark confidant", "dark tutelage", "twilight prophet",
+  "peer into the abyss", "wheel of fortune", "windfall",
+  "scroll rack", "future sight", "mind's eye",
+  "sensei's divining top", "omniscience",
+  "idyllic tutor", "academy rector", "diabolic intent",
+  "grim tutor", "chord of calling", "birthing pod",
+  "eldritch evolution", "finale of devastation",
+  "green sun's zenith", "fauna shaman",
+  "hullbreacher", "leovold, emissary of trest",
+  "grand abolisher", "city of solitude",
+  "collector ouphe", "null rod",
+  "stony silence", "aura of silence",
+  "cursed totem", "root maze",
+  "teferi, time raveler",
+  "heroic intervention", "boros charm",
+  "akroma's will", "veil of summer", "praetor's grasp",
+  "jin-gitaxias, core augur", "elesh norn, grand cenobite",
+  "craterhoof behemoth", "avenger of zendikar",
+  "blightsteel colossus", "void winnower",
+  "magus of the moon", "blood moon", "back to basics",
+  "winter orb", "static orb",
+  "isochron scepter", "dramatic reversal", "dockside extortionist",
+  "demonic consultation", "tainted pact",
+  "mana geyser", "rise of the dark realms",
+  "time stretch", "temporal manipulation", "capture of jingzhou",
+]);
+
+// -------------------------------------------------------------------------
+// 4b. OPTIMIZER ENGINE
+// -------------------------------------------------------------------------
+
+const ARCHETYPE_QUERIES = {
+  spellslinger: ['o:"whenever you cast"', 'o:magecraft', 'o:prowess'],
+  tokens:       ['o:"create" o:token', 'o:populate', 'o:convoke'],
+  aristocrats:  ['o:"whenever" o:dies', 'o:sacrifice o:whenever', 'o:undying'],
+  voltron:      ['t:equipment', 't:aura o:"enchant creature"', 'o:"equipped creature"'],
+  counters:     ['o:proliferate', 'o:evolve', 'o:bolster'],
+  reanimator:   ['o:"from your graveyard"', 'o:flashback', 'o:unearth'],
+  landfall:     ['o:landfall', 'o:"search your library" o:land', 'o:"additional land"'],
+  stompy:       ['t:creature o:trample cmc>=5', 'o:"enters the battlefield" t:creature cmc>=4', 'o:"search your library" o:land'],
+  grouphug:     ['o:"each player draws"', 'o:"each player" o:gain', 'o:"your opponents" o:draw'],
+};
+
+function setOptStatus(html) {
+  const e = document.getElementById('opt-status');
+  if (e) { e.className = 'optimizer-status'; e.innerHTML = html; }
+}
+
+async function scryfallSearch(query, colorIdentity, extra) {
+  extra = extra || '';
+  const ciStr = colorIdentity.length ? colorIdentity.join('') : 'C';
+  const fullQuery = query + ' id<=' + ciStr + ' legal:commander' + (extra ? ' ' + extra : '');
+  const url = 'https://api.scryfall.com/cards/search?order=edhrec&q=' + encodeURIComponent(fullQuery);
+  try {
+    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return data.data || [];
+  } catch(e) { return []; }
+}
+
+function buildCutReason(card, isGC, targetBracket, archetypeLabel) {
+  if (isGC) return 'Game Changer — cutting this moves deck toward Bracket ' + targetBracket;
+  const oracle = [card.oracle_text, ...(card.card_faces||[]).map(function(f){return f.oracle_text;})]
+    .filter(Boolean).join(' ').toLowerCase();
+  const t = (card.type_line || '').toLowerCase();
+  const lbl = archetypeLabel || 'primary';
+  if (/counter target/.test(oracle) && !t.includes('creature'))
+    return 'Counterspell — no direct ' + lbl + ' synergy';
+  if (/destroy target|exile target/.test(oracle) && !t.includes('creature'))
+    return 'Removal spell — consider replacing with an on-theme card';
+  if (/destroy all|exile all|each creature/.test(oracle))
+    return 'Board wipe — does not advance ' + lbl + ' strategy';
+  if (/draw.*card/.test(oracle) && !t.includes('creature'))
+    return 'Card draw — no ' + lbl + ' synergy';
+  if (t.includes('creature'))
+    return 'Creature — no ' + lbl + ' synergy; replace with on-theme creature';
+  if (t.includes('enchantment'))
+    return 'Enchantment — no ' + lbl + ' synergy';
+  if (t.includes('artifact'))
+    return 'Artifact — no ' + lbl + ' synergy';
+  if (t.includes('planeswalker'))
+    return 'Planeswalker — does not support ' + lbl + ' strategy';
+  return 'Does not support ' + lbl + ' strategy — strong cut candidate';
+}
+
+function buildAddReason(card, archetypeId, tier) {
+  const oracle = [card.oracle_text, ...(card.card_faces||[]).map(function(f){return f.oracle_text;})]
+    .filter(Boolean).join(' ').toLowerCase();
+  const t = (card.type_line || '').toLowerCase();
+  if (tier === 1) {
+    if (/tutor|search your library/.test(oracle)) return '🏆 Game Changer — tutors for any card';
+    if (/draw.*card/.test(oracle))     return '🏆 Game Changer — powerful card draw engine';
+    if (/counter target/.test(oracle)) return '🏆 Game Changer — elite interaction';
+    if (/destroy all|exile all/.test(oracle)) return '🏆 Game Changer — format-defining board wipe';
+    if (/without paying/.test(oracle)) return '🏆 Game Changer — free spell, zero mana cost';
+    if (/extra turn/.test(oracle))     return '🏆 Game Changer — extra turn effect';
+    if (/opponents can/.test(oracle))  return '🏆 Game Changer — shuts down opponent strategies';
+    return '🏆 Game Changer — one of the most powerful cards in Commander';
+  }
+  if (tier === 2) {
+    if (/tutor|search your library/.test(oracle)) return '⚡ High Impact — efficient tutor effect';
+    if (/draw.*card/.test(oracle))     return '⚡ High Impact — strong card advantage engine';
+    if (/counter target/.test(oracle)) return '⚡ High Impact — powerful interaction piece';
+    if (/without paying/.test(oracle)) return '⚡ High Impact — free spell, incredible tempo';
+    if (/opponents can/.test(oracle))  return '⚡ High Impact — locks out opponent strategies';
+    if (/extra turn/.test(oracle))     return '⚡ High Impact — extra turn effect';
+    if (/destroy all|exile all/.test(oracle)) return '⚡ High Impact — powerful board wipe';
+    return '⚡ High Impact — near-Game-Changer level card';
+  }
+  if (archetypeId === 'spellslinger') {
+    if (/whenever you cast/.test(oracle)) return 'Triggers whenever you cast a spell';
+    if (/magecraft/.test(oracle))  return 'Magecraft — triggers on every instant/sorcery';
+    if (/prowess/.test(oracle))    return 'Prowess — grows when you cast spells';
+    if (/copy/.test(oracle))       return 'Copies your spells for double value';
+    if (/storm/.test(oracle))      return 'Storm — scales with spells cast this turn';
+  }
+  if (archetypeId === 'counters') {
+    if (/proliferate/.test(oracle))  return 'Proliferates — spreads counters to all permanents';
+    if (/counter/.test(oracle) && /put/.test(oracle)) return 'Puts counters on your creatures';
+    if (/evolve/.test(oracle))       return 'Evolve — grows when bigger creatures enter';
+    if (/adapt/.test(oracle))        return 'Adapt — adds counters when able';
+    if (/bolster/.test(oracle))      return 'Bolster — buffs your weakest creature';
+  }
+  if (archetypeId === 'tokens') {
+    if (/create.*token/.test(oracle)) return 'Creates tokens to grow your board';
+    if (/populate/.test(oracle))     return 'Populate — copies your best token';
+    if (/convoke/.test(oracle))      return 'Convoke — your tokens help cast it';
+    if (/other creatures.*get/.test(oracle)) return 'Anthem — buffs all your tokens';
+  }
+  if (archetypeId === 'aristocrats') {
+    if (/whenever.*dies/.test(oracle)) return 'Death trigger — rewards sacrificing creatures';
+    if (/sacrifice.*creature/.test(oracle)) return 'Sac outlet — turns deaths into value';
+    if (/undying/.test(oracle))      return 'Undying — returns with a counter';
+    if (/persist/.test(oracle))      return 'Persist — returns with a -1/-1 counter';
+  }
+  if (archetypeId === 'voltron') {
+    if (t.includes('equipment'))     return 'Equipment — pumps your commander';
+    if (t.includes('aura'))          return 'Aura — permanently buffs enchanted creature';
+    if (/double strike/.test(oracle)) return 'Double strike — deals commander damage twice';
+  }
+  if (archetypeId === 'reanimator') {
+    if (/from your graveyard.*battlefield/.test(oracle)) return 'Reanimates creatures from your graveyard';
+    if (/flashback/.test(oracle))    return 'Flashback — cast again from the graveyard';
+    if (/unearth/.test(oracle))      return 'Unearth — temporarily reanimates creatures';
+    if (/mill/.test(oracle))         return 'Mills cards to fill your graveyard';
+  }
+  if (archetypeId === 'landfall') {
+    if (/landfall/.test(oracle))     return 'Landfall — triggers when lands enter';
+    if (/search your library.*land/.test(oracle)) return 'Fetches lands to trigger Landfall';
+    if (/additional land/.test(oracle)) return 'Lets you play extra lands per turn';
+  }
+  if (archetypeId === 'stompy') {
+    if (/trample/.test(oracle) && t.includes('creature')) return 'Tramples through blockers for big damage';
+    if (/search your library.*land/.test(oracle)) return 'Ramps to cast your big threats faster';
+  }
+  if (archetypeId === 'grouphug') {
+    if (/each player draws/.test(oracle)) return 'Each player draws — builds goodwill at the table';
+    if (/each player.*gain/.test(oracle)) return 'Gives everyone resources — political card';
+  }
+  const rank = card.edhrec_rank;
+  if (rank && rank < 200)  return 'EDHREC #' + rank.toLocaleString() + ' — among the most played Commander cards';
+  if (rank && rank < 1000) return 'EDHREC #' + rank.toLocaleString() + ' — widely played in Commander';
+  if (rank && rank < 3000) return 'EDHREC #' + rank.toLocaleString() + ' — popular in this color identity';
+  return 'Within color identity · Commander legal';
+}
+
+function buildSuggestionCard(card, reason, price, rank, type, tier) {
+  const tile = document.createElement('div');
+  tile.className = 'suggestion-card ' + type;
+  const rawCost = card.mana_cost || (card.card_faces && card.card_faces[0] && card.card_faces[0].mana_cost) || '';
+  const mana = rawCost.replace(/[{}]/g, '');
+  // price === null = no Scryfall price data (reserved list etc.)
+  const priceStr = price === null
+    ? '<span style="color:var(--coral);font-size:11px;">Price unavailable</span>'
+    : price > 0
+      ? '<span class="s-price">$' + price.toFixed(2) + '</span>'
+      : '<span class="s-price">$0.00</span>';
+  const rankStr = rank ? '<span class="s-rank">EDHREC #' + rank.toLocaleString() + '</span>' : '';
+  const tierBadge = (type === 'add' && tier === 1)
+    ? '<span style="display:inline-block;margin-right:6px;padding:1px 5px;font-size:9px;letter-spacing:1px;color:#ffd166;font-family:Fredoka One,cursive;border:1px solid rgba(255,209,102,0.4);border-radius:4px;vertical-align:middle;">🏆 GAME CHANGER</span> '
+    : (type === 'add' && tier === 2)
+    ? '<span style="display:inline-block;margin-right:6px;padding:1px 5px;font-size:9px;letter-spacing:1px;color:#ff7b29;font-family:Fredoka One,cursive;border:1px solid rgba(255,123,41,0.4);border-radius:4px;vertical-align:middle;">⚡ HIGH IMPACT</span> '
+    : '';
+  const tcgUri = (type === 'add' && card.purchase_uris && card.purchase_uris.tcgplayer)
+    ? card.purchase_uris.tcgplayer : null;
+  const tcgLink = tcgUri
+    ? '<div style="margin-top:6px;"><a href="' + tcgUri + '" target="_blank" rel="noopener" '
+      + 'style="font-size:11px;color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(46,196,182,0.4);" '
+      + 'onclick="event.stopPropagation()">Buy on TCGPlayer →</a></div>'
+    : '';
+  tile.innerHTML = '<div class="s-name">' + tierBadge + escapeHtml(card.name)
+    + (mana ? ' <span style="color:var(--text-dim);font-size:11px;">' + escapeHtml(mana) + '</span>' : '')
+    + '</div>'
+    + '<div class="s-reason">' + escapeHtml(reason) + '</div>'
+    + '<div class="s-meta">' + priceStr + rankStr + '</div>'
+    + tcgLink;
+  tile.addEventListener('click', function() { openCardModal(card); });
+  tile.addEventListener('mouseenter', function(e) { showPreview(card, e.clientX, e.clientY); });
+  tile.addEventListener('mousemove',  function(e) { positionPreview(e.clientX, e.clientY); });
+  tile.addEventListener('mouseleave', hidePreview);
+  return tile;
+}
+
+async function runOptimizer(report) {
+  const optBtn     = document.getElementById('opt-btn');
+  const optResults = document.getElementById('opt-results');
+  const targetBracket = parseInt(document.getElementById('opt-bracket').value, 10);
+  const budgetRaw  = document.getElementById('opt-budget').value.trim();
+  const budget     = budgetRaw ? parseFloat(budgetRaw) : Infinity;
+
+  optBtn.disabled = true;
+  optResults.classList.remove('visible');
+  optResults.innerHTML = '';
+
+  const commander       = report.commander;
+  const colorId         = commander ? (commander.card.color_identity || []) : [];
+  const archetype       = (report.archetype && report.archetype.primary && report.archetype.primary.arch) ? report.archetype.primary.arch.id : 'spellslinger';
+  const offTheme        = (report.archetype && report.archetype.offTheme) ? report.archetype.offTheme : [];
+  const gcInDeck        = (report.bracket && report.bracket.signals) ? report.bracket.signals.gameChangers : [];
+  const landCount       = report.landCount;
+  const inDeckNames     = new Set(report.entries.map(function(e) { return frontFaceName(e.card); }));
+  const detectedBracket = report.bracket ? report.bracket.bracket : 3;
+
+  // Step 1: cuts
+  setOptStatus('<span class="spinner"></span> Building cut list…');
+  await new Promise(function(r) { setTimeout(r, 30); });
+
+  var cuts = [];
+  var bracketDownWarning = null;
+
+  if (targetBracket < detectedBracket && gcInDeck.length) {
+    bracketDownWarning = { from: detectedBracket, to: targetBracket, cards: gcInDeck.slice(0, 10) };
+    cuts = gcInDeck.slice(0, 10).map(function(e) {
+      return { card: e.card, reason: buildCutReason(e.card, true, targetBracket), isGC: true };
+    });
+  }
+  var remainingSlots = 10 - cuts.length;
+  var offThemeCuts = offTheme.slice(0, remainingSlots).map(function(e) {
+    return { card: e.card, reason: buildCutReason(e.card, false, null, report.archetype && report.archetype.primary && report.archetype.primary.arch ? report.archetype.primary.arch.label : null), isGC: false };
+  });
+  cuts = cuts.concat(offThemeCuts);
+  var cutCount = Math.min(cuts.length, 10);
+  cuts = cuts.slice(0, cutCount);
+
+  // Step 2: adds (tiered: GC > High Impact > Archetype)
+  var seen = new Set();
+  var allCards = [];
+
+  // Tier 1: Game Changers
+  if (targetBracket >= 3) {
+    setOptStatus('<span class="spinner"></span> Checking Game Changers…');
+    var gcNames = [];
+    GAME_CHANGERS.forEach(function(n) { if (!inDeckNames.has(n)) gcNames.push(n); });
+    for (var gi = 0; gi < gcNames.length; gi += 20) {
+      var chunk = gcNames.slice(gi, gi + 20);
+      var q = chunk.map(function(n) { return '!"' + n + '"'; }).join(' or ');
+      var results = await scryfallSearch(q, colorId);
+      await new Promise(function(r) { setTimeout(r, 120); });
+      for (var ci = 0; ci < results.length; ci++) {
+        var card = results[ci];
+        var name = (card.name || '').split(' // ')[0].toLowerCase();
+        if (seen.has(name) || inDeckNames.has(name)) continue;
+        var _p1 = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : null;
+        if (_p1 === null && budget < Infinity) continue;
+        if (_p1 !== null && _p1 > budget) continue;
+        seen.add(name); allCards.push({ card: card, tier: 1 });
+      }
+    }
+  }
+
+  // Tier 2: HIGH_IMPACT
+  setOptStatus('<span class="spinner"></span> Checking high-impact cards…');
+  var hiNames = [];
+  HIGH_IMPACT.forEach(function(n) {
+    if (!GAME_CHANGERS.has(n) && !STAPLES.has(n) && !inDeckNames.has(n) && !seen.has(n)) hiNames.push(n);
+  });
+  for (var hi = 0; hi < hiNames.length; hi += 20) {
+    var chunk2 = hiNames.slice(hi, hi + 20);
+    var q2 = chunk2.map(function(n) { return '!"' + n + '"'; }).join(' or ');
+    var results2 = await scryfallSearch(q2, colorId);
+    await new Promise(function(r) { setTimeout(r, 120); });
+    for (var ci2 = 0; ci2 < results2.length; ci2++) {
+      var card2 = results2[ci2];
+      var name2 = (card2.name || '').split(' // ')[0].toLowerCase();
+      if (seen.has(name2) || inDeckNames.has(name2)) continue;
+      var _p2 = (card2.prices && card2.prices.usd) ? parseFloat(card2.prices.usd) : null;
+      if (_p2 === null && budget < Infinity) continue;
+      if (_p2 !== null && _p2 > budget) continue;
+      seen.add(name2); allCards.push({ card: card2, tier: 2 });
+    }
+  }
+
+  // Tier 3: Archetype search
+  var archObj = ARCHETYPES.find(function(a) { return a.id === archetype; });
+  var archLabel2 = archObj ? archObj.label : archetype;
+  var queries = ARCHETYPE_QUERIES[archetype] || ARCHETYPE_QUERIES.spellslinger;
+  for (var qi = 0; qi < queries.length; qi++) {
+    setOptStatus('<span class="spinner"></span> Finding ' + archLabel2 + ' suggestions (' + (qi+1) + '/' + queries.length + ')…');
+    var results3 = await scryfallSearch(queries[qi], colorId);
+    await new Promise(function(r) { setTimeout(r, 120); });
+    for (var ci3 = 0; ci3 < results3.length; ci3++) {
+      var card3 = results3[ci3];
+      var name3 = (card3.name || '').split(' // ')[0].toLowerCase();
+      if (seen.has(name3) || inDeckNames.has(name3)) continue;
+      var _p3 = (card3.prices && card3.prices.usd) ? parseFloat(card3.prices.usd) : null;
+      if (_p3 === null && budget < Infinity) continue;
+      if (_p3 !== null && _p3 > budget) continue;
+      seen.add(name3); allCards.push({ card: card3, tier: 3 });
+    }
+  }
+
+  allCards.sort(function(a, b) {
+    return (a.tier - b.tier) || ((a.card.edhrec_rank || 999999) - (b.card.edhrec_rank || 999999));
+  });
+  var adds = allCards.slice(0, cutCount).map(function(x) {
+    return {
+      card: x.card,
+      reason: buildAddReason(x.card, archetype, x.tier),
+      price: (x.card.prices && x.card.prices.usd) ? parseFloat(x.card.prices.usd) : null,
+      rank: x.card.edhrec_rank,
+      tier: x.tier,
+    };
+  });
+
+  // Step 3: land suggestions
+  var landSuggestions = [];
+  var targetLands = 36;
+  if (landCount < targetLands) {
+    setOptStatus('<span class="spinner"></span> Finding land suggestions…');
+    var landsNeeded = Math.min(targetLands - landCount, 10);
+    var landResults  = await scryfallSearch('t:land -t:basic', colorId);
+    await new Promise(function(r) { setTimeout(r, 120); });
+    var basicResults = await scryfallSearch('t:basic t:land', colorId);
+    var allLands = landResults.concat(basicResults)
+      .filter(function(c) { return !inDeckNames.has((c.name||'').split(' // ')[0].toLowerCase()); })
+      .sort(function(a,b) { return (a.edhrec_rank||999999)-(b.edhrec_rank||999999); });
+    var landSeen = new Set();
+    for (var li = 0; li < allLands.length && landSuggestions.length < landsNeeded; li++) {
+      var lc = allLands[li];
+      var ln = (lc.name||'').split(' // ')[0].toLowerCase();
+      if (landSeen.has(ln)) continue;
+      var lp = (lc.prices && lc.prices.usd) ? parseFloat(lc.prices.usd) : null;
+      if (lp === null && budget < Infinity) { continue; }
+      if (lp !== null && lp > budget) continue;
+      landSeen.add(ln);
+      landSuggestions.push({ card: lc, price: lp, rank: lc.edhrec_rank });
+    }
+  }
+
+  // Step 4: render
+  setOptStatus('');
+  optResults.innerHTML = '';
+
+  if (bracketDownWarning) {
+    var warn = document.createElement('div');
+    warn.className = 'bracket-down-warning';
+    warn.innerHTML = '<strong>⚠️ Bracket reduction: ' + bracketDownWarning.from + ' → ' + bracketDownWarning.to + '</strong>Removing Game Changers will reduce your deck\'s power level. Only cut them if your goal is a more casual table experience.';
+    optResults.appendChild(warn);
+  }
+
+  if (cuts.length || adds.length) {
+    var cols = document.createElement('div');
+    cols.className = 'optimizer-cols';
+    var cutsCol = document.createElement('div');
+    cutsCol.innerHTML = '<div class="optimizer-col-head cuts">✂️ Suggested Cuts (' + cuts.length + ')</div>';
+    cuts.forEach(function(item) { cutsCol.appendChild(buildSuggestionCard(item.card, item.reason, null, null, 'cut', 0)); });
+    if (!cuts.length) cutsCol.innerHTML += '<div style="color:var(--text-dim);font-size:13px;font-style:italic;">No off-theme cards to cut — deck looks focused!</div>';
+    var addsCol = document.createElement('div');
+    var tcgMassUrl = null;
+    if (adds.length > 0) {
+      var cardEntries = adds.map(function(item) { return '1 ' + item.card.name.split(' // ')[0]; });
+      tcgMassUrl = 'https://www.tcgplayer.com/massentry?c=' + encodeURIComponent(cardEntries.join('||'));
+    }
+    var buyAllHtml = tcgMassUrl ? '<a href="' + tcgMassUrl + '" target="_blank" rel="noopener" class="btn-buy-all">🛒 Buy All on TCGPlayer</a>' : '';
+    addsCol.innerHTML = '<div class="optimizer-col-head adds" style="display:flex;align-items:center;">✨ Suggested Adds (' + adds.length + ')' + buyAllHtml + '</div>';
+    adds.forEach(function(item) { addsCol.appendChild(buildSuggestionCard(item.card, item.reason, item.price, item.rank, 'add', item.tier)); });
+    if (!adds.length) addsCol.innerHTML += '<div style="color:var(--text-dim);font-size:13px;font-style:italic;">No suggestions found — try relaxing your budget or bracket.</div>';
+    cols.appendChild(cutsCol);
+    cols.appendChild(addsCol);
+    optResults.appendChild(cols);
+  }
+
+  if (landSuggestions.length) {
+    var landSection = document.createElement('div');
+    landSection.className = 'land-suggestion-section';
+    var needed = targetLands - landCount;
+    landSection.innerHTML = '<div class="land-suggestion-head">🌍 Land Suggestions</div>'
+      + '<div class="land-suggestion-sub">Your deck has ' + landCount + ' lands — most Commander decks want 36+. Consider adding ' + needed + ' more land' + (needed===1?'':'s') + '.</div>'
+      + '<div class="land-grid" id="land-grid-inner"></div>';
+    optResults.appendChild(landSection);
+    var grid = landSection.querySelector('#land-grid-inner');
+    landSuggestions.forEach(function(item) {
+      grid.appendChild(buildSuggestionCard(item.card, 'Land within color identity', item.price, item.rank, 'add', 0));
+    });
+  }
+
+  optResults.classList.add('visible');
+  optBtn.disabled = false;
+  setOptStatus('Done — ' + cuts.length + ' cut' + (cuts.length===1?'':'s') + ', ' + adds.length + ' add' + (adds.length===1?'':'s') + (landSuggestions.length ? ', ' + landSuggestions.length + ' land suggestion' + (landSuggestions.length===1?'':'s') : '') + '.');
+}
+
+// -------------------------------------------------------------------------
+// 5. EVENT WIRING
+// -------------------------------------------------------------------------
+const $input  = document.getElementById('decklist-input');
+const $btn    = document.getElementById('analyze-btn');
+const $status = document.getElementById('status');
+const $clearBtn = document.getElementById('clear-btn');
+
+// ── Commander picker state ──────────────────────────────────────────────────
+// When no commander is found in the parsed list, we inject a picker UI into
+// the input panel and pause analysis until the user makes a choice.
+// `pendingEntries` holds the parsed list while we wait; once the user
+// confirms (or skips), we resume from here rather than re-parsing.
+let pendingEntries = null;
+let pickerSelectedName = null;
+
+function showCommanderPicker(entries) {
+  // Build sorted unique list of candidate names (non-land cards only, to keep
+  // the list manageable — lands are almost never commanders).
+  const names = entries
+    .filter(e => !/^\s*\/\//.test(e.name))   // strip any stray comment lines
+    .map(e => e.name)
+    .sort((a, b) => a.localeCompare(b));
+
+  // Remove any existing picker
+  const existing = document.getElementById('cmdr-picker');
+  if (existing) existing.remove();
+
+  const picker = document.createElement('div');
+  picker.id = 'cmdr-picker';
+  picker.className = 'cmdr-picker';
+  picker.innerHTML = `
+    <div class="cmdr-picker-title">👑 Who's the commander?</div>
+    <div class="cmdr-picker-sub">Your decklist doesn't have a commander marked. Pick one to continue, or skip to analyze without one.</div>
+    <input type="text" class="cmdr-picker-search" id="cmdr-search" placeholder="Filter cards…" autocomplete="off" spellcheck="false">
+    <div class="cmdr-picker-list" id="cmdr-list"></div>
+    <div class="cmdr-picker-actions">
+      <button class="cmdr-picker-confirm" id="cmdr-confirm" disabled>Confirm Commander</button>
+      <button class="cmdr-picker-skip" id="cmdr-skip">Skip — analyze without one</button>
+    </div>
+  `;
+
+  // Insert the picker below the textarea, inside the input panel
+  const inputPanel = document.querySelector('.input-panel');
+  inputPanel.appendChild(picker);
+
+  const $list    = picker.querySelector('#cmdr-list');
+  const $search  = picker.querySelector('#cmdr-search');
+  const $confirm = picker.querySelector('#cmdr-confirm');
+
+  pickerSelectedName = null;
+
+  function renderList(filter) {
+    const lf = filter.toLowerCase();
+    const filtered = names.filter(n => n.toLowerCase().includes(lf));
+    $list.innerHTML = '';
+    for (const name of filtered) {
+      const item = document.createElement('div');
+      item.className = 'cmdr-picker-item' + (name === pickerSelectedName ? ' selected' : '');
+      item.innerHTML = `
+        <span class="cmdr-item-name">${escapeHtml(name)}</span>
+        ${name === pickerSelectedName ? '<span class="cmdr-item-check">✓</span>' : ''}
+      `;
+      item.addEventListener('click', () => {
+        pickerSelectedName = name;
+        $confirm.disabled = false;
+        renderList($search.value);
+      });
+      $list.appendChild(item);
+    }
+    if (filtered.length === 0) {
+      $list.innerHTML = '<div class="cmdr-picker-item" style="color:var(--text-dim);cursor:default;">No cards match</div>';
+    }
+  }
+
+  renderList('');
+  $search.addEventListener('input', () => renderList($search.value));
+  $search.focus();
+
+  $confirm.addEventListener('click', () => {
+    if (!pickerSelectedName) return;
+    // Flag the chosen entry as commander
+    for (const e of pendingEntries) {
+      e.isCommander = (e.name === pickerSelectedName);
+    }
+    picker.remove();
+    continueAnalysis();
+  });
+
+  picker.querySelector('#cmdr-skip').addEventListener('click', () => {
+    picker.remove();
+    continueAnalysis();
+  });
+}
+
+async function continueAnalysis() {
+  const entries = pendingEntries;
+  pendingEntries = null;
+
+  try {
+    await fetchCards(entries, (msg) => setStatus(`<span class="spinner"></span> ${msg}`, ''));
+  } catch (err) {
+    setStatus('Scryfall error: ' + err.message, 'error');
+    $btn.disabled = false;
+    return;
+  }
+
+  setStatus('Analyzing…', '');
+  const report = analyzeDeck(entries);
+  renderResults(report);
+  const palette = buildPalette(report.colorFrequency);
+  applyTheme(palette);
+  setStatus(`Analyzed ${report.totalCards} cards across ${Object.values(report.byType).filter(g => g.length).length} types.`, 'success');
+  $btn.disabled = false;
+}
+
+async function runAnalysis() {
+  const text = $input.value.trim();
+  if (!text) {
+    setStatus('Paste a decklist first.', 'error');
+    return;
+  }
+
+  $btn.disabled = true;
+  setStatus('<span class="spinner"></span> Parsing decklist…', '');
+
+  let entries;
+  try {
+    entries = parseDecklist(text);
+    if (!entries.length) throw new Error('No cards detected.');
+  } catch (err) {
+    setStatus('Parse error: ' + err.message, 'error');
+    $btn.disabled = false;
+    return;
+  }
+
+  // Check if a commander is already designated
+  const hasCommander = entries.some(e => e.isCommander);
+  if (!hasCommander) {
+    // Pause here — show the picker, store entries, wait for user input
+    pendingEntries = entries;
+    setStatus('Pick a commander to continue.', '');
+    showCommanderPicker(entries);
+    // Note: $btn stays disabled until continueAnalysis() re-enables it
+    return;
+  }
+
+  // Commander already marked — proceed directly
+  pendingEntries = entries;
+  continueAnalysis();
+}
+
+function setStatus(html, cls) {
+  $status.className = 'status' + (cls ? ' ' + cls : '');
+  $status.innerHTML = html;
+}
+
+$btn.addEventListener('click', runAnalysis);
+
+// Allow Ctrl/Cmd+Enter to trigger analysis from the textarea
+$input.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runAnalysis();
+});
+
+// Clear List button — wipe textarea, reset results and theme
+$clearBtn.addEventListener('click', () => {
+  $input.value = '';
+  $input.focus();
+  setStatus('', '');
+  const results = document.getElementById('results');
+  results.innerHTML = '';
+  results.classList.remove('visible');
+  // Remove any lingering commander picker
+  const picker = document.getElementById('cmdr-picker');
+  if (picker) picker.remove();
+  $btn.disabled = false;
+  resetTheme();
+});
+
+// -------------------------------------------------------------------------
+// 6. CARD DETAIL MODAL + HOVER PREVIEW
+// -------------------------------------------------------------------------
+const $modalBackdrop = document.getElementById('modal-backdrop');
+const $modalContent  = document.getElementById('modal-content');
+const $modalClose    = document.getElementById('modal-close');
+const $preview       = document.getElementById('card-preview');
+
+function openCardModal(card) {
+  $modalContent.innerHTML = buildModalContent(card);
+  $modalBackdrop.classList.add('open');
+  $modalBackdrop.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';  // prevent background scroll
+  hidePreview();                             // hide hover tooltip when modal opens
+}
+
+function closeCardModal() {
+  $modalBackdrop.classList.remove('open');
+  $modalBackdrop.setAttribute('aria-hidden', 'true');
+  $modalContent.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+$modalClose.addEventListener('click', closeCardModal);
+
+// Click anywhere on the backdrop (but not the modal itself) closes the modal.
+$modalBackdrop.addEventListener('click', (e) => {
+  if (e.target === $modalBackdrop) closeCardModal();
+});
+
+// Escape key closes modal (when open).
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $modalBackdrop.classList.contains('open')) {
+    closeCardModal();
+  }
+});
+
+// -------- Hover preview --------
+// Single floating image that follows the cursor while hovering over a card.
+// Positions itself near the cursor and avoids running off-screen.
+const PREVIEW_W = 240;
+const PREVIEW_H = 336;  // ≈ 240 * (680/488), Scryfall normal aspect ratio
+
+function showPreview(card, x, y) {
+  const uri = getCardImageUrl(card, 'normal');
+  if (!uri) return;
+  // Avoid swapping src if it's already showing this card
+  const img = $preview.querySelector('img');
+  if (!img || img.dataset.src !== uri) {
+    $preview.innerHTML = `<img src="${escapeHtml(uri)}" data-src="${escapeHtml(uri)}" alt="">`;
+  }
+  $preview.style.display = 'block';
+  positionPreview(x, y);
+}
+
+function positionPreview(x, y) {
+  // Default: down and to the right of cursor
+  let left = x + 20;
+  let top  = y + 20;
+  // Flip horizontally if it would go off the right edge
+  if (left + PREVIEW_W > window.innerWidth - 8) left = x - PREVIEW_W - 20;
+  // Clamp vertically
+  if (top + PREVIEW_H > window.innerHeight - 8) top = window.innerHeight - PREVIEW_H - 8;
+  if (top < 8) top = 8;
+  $preview.style.left = left + 'px';
+  $preview.style.top  = top  + 'px';
+}
+
+function hidePreview() {
+  $preview.style.display = 'none';
+}
+
+
+</script>
+</body>
+</html>
